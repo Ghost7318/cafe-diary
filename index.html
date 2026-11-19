@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F6EFE6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="カフェ日記">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>カフェ日記</title>
+
+<!-- ファビコン：コーヒーカップ（SVG版。iPhone用PNG版はJSで追加） -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F3E1CF'/%3E%3Cpath d='M14 26h30v12a12 12 0 0 1-12 12h-6A12 12 0 0 1 14 38z' fill='%23B5774B'/%3E%3Cpath d='M44 29h4a6 6 0 0 1 0 12h-4' fill='none' stroke='%23B5774B' stroke-width='4'/%3E%3Cpath d='M22 11c-3 3 3 5 0 9M30 11c-3 3 3 5 0 9M38 11c-3 3 3 5 0 9' stroke='%238F5A34' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Crect x='11' y='52' width='38' height='3' rx='1.5' fill='%238F5A34'/%3E%3C/svg%3E">
+
+<script>
+  // 表示設定を描画前に反映（ちらつき防止）
+  (function () {
+    try {
+      var t = localStorage.getItem('cafeDiary.theme') || 'auto';
+      var dark = t === 'dark' || (t === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      if (dark) document.documentElement.classList.add('dark');
+      var f = localStorage.getItem('cafeDiary.fontSize');
+      if (f) document.documentElement.setAttribute('data-fs', f);
+    } catch (e) {}
+  })();
+</script>
+
+<style>
+  :root {
+    --bg: #F6EFE6;
+    --card: #FFFBF5;
+    --soft: #F1E7DA;
+    --line: #E6D8C5;
+    --ink: #4A3728;
+    --sub: #8B7765;
+    --accent: #B5774B;
+    --accent-d: #8F5A34;
+    --accent-l: #F3E1CF;
+    --sage: #7F9A7B;
+    --danger: #C0584A;
+    --shadow: 0 2px 10px rgba(110, 76, 44, .08);
+  }
+  html.dark {
+    --bg: #1F1814;
+    --card: #2A211B;
+    --soft: #352A22;
+    --line: #473A2E;
+    --ink: #F1E6D8;
+    --sub: #B8A592;
+    --accent: #D49A6A;
+    --accent-d: #E4B084;
+    --accent-l: #4A3626;
+    --sage: #9DB899;
+    --danger: #E07F70;
+    --shadow: 0 2px 10px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+  html[data-fs="s"] { font-size: 14px; }
+  html[data-fs="l"] { font-size: 18px; }
+  html { -webkit-text-size-adjust: 100%; font-size: 16px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  .serif { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif; }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+  input, select, textarea { font: inherit; color: var(--ink); }
+  .hidden { display: none !important; }
+
+  /* ---- レイアウト ---- */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 14px; }
+  header.top {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding-top: env(safe-area-inset-top);
+  }
+  .top-in { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; max-width: 1100px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .logo { width: 40px; height: 40px; border-radius: 14px; background: var(--accent-l); display: grid; place-items: center; font-size: 22px; flex-shrink: 0; }
+  .brand h1 { font-size: 1.05rem; letter-spacing: .06em; line-height: 1.2; }
+  .brand p { font-size: 10.5px; color: var(--sub); display: flex; align-items: center; gap: 5px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); display: inline-block; }
+  .btn-row { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn { padding: 10px 16px; border-radius: 14px; font-weight: 700; font-size: .82rem; transition: .15s; white-space: nowrap; }
+  .btn:active { transform: scale(.96); }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: var(--shadow); }
+  .btn-primary:hover { background: var(--accent-d); }
+  .btn-soft { background: var(--soft); border: 1px solid var(--line); }
+  .btn-soft:hover { background: var(--accent-l); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-block { width: 100%; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 14px; background: var(--soft); border: 1px solid var(--line); display: grid; place-items: center; font-size: 18px; }
+
+  main { padding-top: 14px; padding-bottom: calc(28px + env(safe-area-inset-bottom)); display: grid; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px; box-shadow: var(--shadow); }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .stat { padding: 12px; position: relative; overflow: hidden; }
+  .stat .lab { font-size: 10.5px; color: var(--sub); white-space: nowrap; }
+  .stat .num { font-size: 1.5rem; font-weight: 700; color: var(--accent-d); white-space: nowrap; margin-top: 2px; }
+  .stat .num small { font-size: .7rem; color: var(--ink); font-weight: 400; margin-left: 2px; }
+  .stat .sub { font-size: 10px; color: var(--sub); line-height: 1.3; margin-top: 2px; }
+  .stat .bg { position: absolute; right: -4px; bottom: -10px; font-size: 3.4rem; opacity: .13; pointer-events: none; }
+  .label-sm { font-size: 11px; color: var(--sub); font-weight: 700; margin-bottom: 4px; }
+  .h2 { font-size: 1.02rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+
+  .tabs { display: flex; background: var(--soft); border-radius: 16px; padding: 4px; }
+  .tabs button { flex: 1; padding: 10px; border-radius: 12px; font-size: .78rem; font-weight: 700; color: var(--sub); }
+  .tabs button.on { background: var(--card); color: var(--accent-d); box-shadow: var(--shadow); }
+  .cols { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+
+  /* ---- カレンダー ---- */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 10px; }
+  .cal-nav { display: flex; align-items: center; gap: 6px; flex: 1; justify-content: space-between; }
+  .cal-nav button.arrow { width: 40px; height: 40px; border-radius: 12px; background: var(--soft); font-size: 14px; flex-shrink: 0; }
+  .cal-sel { display: flex; gap: 6px; }
+  select.pick {
+    appearance: none; -webkit-appearance: none;
+    background: var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238C7E78' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;
+    border: 1px solid var(--line); border-radius: 12px; height: 40px; padding: 0 26px 0 10px; font-weight: 700; font-size: 1rem;
+  }
+  .dow, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--sub); margin-bottom: 4px; }
+  .dow .sun, .cal-grid .sun { color: var(--danger); }
+  .dow .sat, .cal-grid .sat { color: #5E8DB5; }
+  .cal-grid { gap: 4px; }
+  .day { height: 46px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .86rem; font-weight: 500; transition: .12s; position: relative; }
+  .day:hover { background: var(--soft); }
+  .day.today { background: var(--accent-l); color: var(--accent-d); font-weight: 700; border: 1px solid var(--accent); }
+  .day.sel { background: var(--accent); color: #fff; font-weight: 700; box-shadow: var(--shadow); }
+  .day .marks { height: 10px; display: flex; align-items: center; gap: 2px; margin-top: 1px; }
+  .day .m { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .day.sel .m { background: #fff; }
+  .day .star { font-size: 8px; color: #E0A800; line-height: 1; }
+  .day.sel .star { color: #fff; }
+  .cal-foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: var(--sub); }
+  .mood-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .mood-row::-webkit-scrollbar { display: none; }
+  .mood-row button { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 4px 6px; border-radius: 10px; }
+  .mood-row button:hover { background: var(--accent-l); }
+  .mood-row .e { font-size: 1.15rem; line-height: 1; }
+  .mood-row .d { font-size: 9px; color: var(--sub); }
+  .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 11px; }
+
+  /* ---- 日記表示 ---- */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--accent-l); color: var(--accent-d); font-size: 11px; font-weight: 700; }
+  .entry-body { background: var(--soft); padding: 14px; border-radius: 16px; font-size: .92rem; white-space: pre-wrap; word-break: break-word; line-height: 1.8; }
+  .small-btn { width: 36px; height: 36px; border-radius: 12px; background: var(--soft); display: grid; place-items: center; font-size: 15px; }
+  .small-btn:hover { background: var(--accent-l); }
+  .row { display: flex; align-items: center; gap: 6px; }
+  .between { justify-content: space-between; }
+  .wrapflex { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  hr.sep { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+
+  /* ---- 検索 ---- */
+  .search { position: relative; margin: 12px 0 10px; }
+  .search input { width: 100%; padding: 12px 38px 12px 14px; border-radius: 16px; background: var(--soft); border: 1px solid var(--line); outline: none; font-size: .9rem; }
+  .search input:focus, .field:focus, select.field:focus { border-color: var(--accent); background: var(--card); }
+  .search .x { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; background: var(--line); font-size: 12px; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips button { flex-shrink: 0; padding: 7px 12px; border-radius: 999px; background: var(--soft); font-size: .76rem; font-weight: 500; }
+  .chips button.on { background: var(--accent); color: #fff; font-weight: 700; }
+  .adv { background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 8px; display: grid; gap: 10px; }
+  .field { width: 100%; padding: 11px 13px; border-radius: 13px; background: var(--soft); border: 1px solid var(--line); outline: none; font-size: .9rem; }
+  .adv .field { background: var(--card); }
+  textarea.field { resize: none; line-height: 1.75; }
+  .tl-item { display: flex; gap: 10px; padding: 12px; border-radius: 16px; background: var(--soft); border: 1px solid var(--line); cursor: pointer; transition: .12s; }
+  .tl-item:hover { border-color: var(--accent); background: var(--accent-l); }
+  .tl-ico { width: 44px; height: 44px; border-radius: 13px; background: var(--card); border: 1px solid var(--line); display: grid; place-items: center; font-size: 1.2rem; flex-shrink: 0; }
+  .tl-body { min-width: 0; flex: 1; }
+  .tl-date { font-size: 11px; font-weight: 700; color: var(--accent-d); }
+  .tl-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl-text { font-size: .76rem; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+  #timeline { display: grid; gap: 10px; }
+  mark { background: rgba(250, 204, 21, .45); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .empty { text-align: center; padding: 28px 12px; border: 1px dashed var(--line); border-radius: 18px; color: var(--sub); font-size: .85rem; }
+  .empty b { display: block; color: var(--ink); margin-bottom: 4px; }
+
+  .notice { border-radius: 18px; padding: 12px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--accent-l); border: 1px solid var(--accent); }
+  .notice .t { flex: 1; min-width: 12rem; }
+  .notice b { font-size: .88rem; }
+  .notice p { font-size: 11px; color: var(--sub); }
+
+  /* ---- モーダル ---- */
+  .modal { position: fixed; inset: 0; z-index: 40; background: rgba(60, 40, 25, .45); backdrop-filter: blur(3px); display: flex; align-items: flex-end; justify-content: center; }
+  .modal.center { align-items: center; padding: 16px; }
+  .panel { background: var(--card); width: 100%; max-width: 520px; max-height: 92vh; max-height: 92dvh; border-radius: 26px 26px 0 0; overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--line); }
+  .modal.center .panel { border-radius: 26px; max-width: 320px; }
+  .panel-head { padding: 14px 18px; background: var(--soft); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .panel-head h3 { font-size: 1rem; }
+  .panel-head small { font-size: 11px; color: var(--sub); display: block; }
+  .panel-body { padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 14px; }
+  .lab { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 6px; display: block; }
+  .help { font-size: 11px; color: var(--sub); line-height: 1.6; }
+  .opt-grid { display: grid; gap: 6px; }
+  .opt-grid.c5 { grid-template-columns: repeat(5, 1fr); }
+  .opt-flex { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opt { cursor: pointer; }
+  .opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .opt span { display: block; text-align: center; padding: 8px 6px; border-radius: 13px; background: var(--soft); border: 1px solid var(--line); font-size: .74rem; font-weight: 500; transition: .12s; min-width: 2.7rem; }
+  .opt input:checked + span { background: var(--accent-l); border-color: var(--accent); color: var(--accent-d); font-weight: 700; }
+  .opt input:focus-visible + span { outline: 2px solid var(--accent); }
+  .opt.big span { font-size: 1.1rem; }
+  .code-box { background: var(--soft); border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: .78rem; color: var(--sub); }
+  #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 70; background: #3B2B20; color: #fff; padding: 11px 20px; border-radius: 999px; font-size: .8rem; box-shadow: 0 6px 20px rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .3s; max-width: 90vw; }
+  #toast.show { opacity: 1; }
+
+  /* ---- ロック ---- */
+  #lock { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--bg) 96%, transparent); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .lock-card { width: 100%; max-width: 300px; background: var(--card); border: 1px solid var(--line); border-radius: 28px; padding: 28px 24px; text-align: center; box-shadow: var(--shadow); }
+  .lock-card .cup { width: 56px; height: 56px; border-radius: 50%; background: var(--accent-l); display: grid; place-items: center; font-size: 28px; margin: 0 auto 10px; }
+  .pin-dots { display: flex; justify-content: center; gap: 14px; margin: 16px 0 22px; }
+  .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); transition: .12s; }
+  .pin-dot.on { background: var(--accent); transform: scale(1.1); }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 240px; margin: 0 auto; }
+  .pad button { height: 56px; border-radius: 18px; background: var(--soft); font-size: 1.15rem; font-weight: 700; }
+  .pad button:active { background: var(--accent-l); transform: scale(.95); }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  .shake { animation: shake .3s; }
+
+  /* fav toggle */
+  .fav-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .fav-toggle .box { display: inline-flex; gap: 6px; padding: 10px 14px; border-radius: 13px; background: var(--soft); border: 1px solid var(--line); font-size: .86rem; cursor: pointer; color: var(--sub); }
+  .fav-toggle input:checked + .box { border-color: #E0A800; color: #B98700; font-weight: 700; }
+  .fav-toggle .on { display: none; }
+  .fav-toggle input:checked + .box .on { display: inline; }
+  .fav-toggle input:checked + .box .off { display: none; }
+
+  @media (max-width: 639px) {
+    input, select, textarea { font-size: 16px !important; }
+    input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 44px; text-align: left; }
+    .hide-sm { display: none !important; }
+  }
+  @media (min-width: 640px) {
+    .grid2 { grid-template-columns: 1fr 1fr; }
+    .grid3 { gap: 14px; }
+    .stat { padding: 18px; }
+    .stat .num { font-size: 2rem; }
+    .stat .lab { font-size: 12px; }
+    .stat .sub { font-size: 11px; }
+    .panel { border-radius: 26px; }
+    .modal { align-items: center; padding: 16px; }
+    .day { height: 52px; }
+    .brand h1 { font-size: 1.2rem; }
+  }
+  @media (min-width: 1024px) {
+    .cols { grid-template-columns: 1fr 1fr; }
+    .tabs { display: none; }
+    #searchCol { display: block !important; }
+    #calCol { display: block !important; }
+    #timeline { max-height: 620px; overflow-y: auto; padding-right: 4px; }
+    .hide-lg { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ パスコードロック ============ -->
+<div id="lock" class="hidden">
+  <div class="lock-card">
+    <div class="cup">☕</div>
+    <h2 class="serif" style="font-size:1.15rem;margin-bottom:2px;">カフェ日記</h2>
+    <p id="pinPrompt" class="help">パスコード（4桁）を入力してください</p>
+    <div id="pinDots" class="pin-dots"><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span></div>
+    <div id="pinPad" class="pad"></div>
+    <button type="button" onclick="forgotPin()" class="help" style="margin-top:18px;text-decoration:underline;">パスコードを忘れたとき</button>
+  </div>
+</div>
+
+<!-- ============ ヘッダー ============ -->
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="logo">☕</div>
+      <div style="min-width:0">
+        <h1 class="serif">カフェ日記</h1>
+        <p><span class="dot"></span><span id="statusText">準備中...</span></p>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="icon-btn" onclick="openSettings()" aria-label="設定">⚙️</button>
+      <button type="button" class="btn btn-primary" onclick="openEditor()">✒️ 日記を書く</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ メイン ============ -->
+<main class="wrap">
+  <div id="notices" style="display:grid;gap:10px"></div>
+
+  <section class="grid3">
+    <div class="card stat" onclick="openSettings()" style="cursor:pointer">
+      <div class="bg">🎂</div>
+      <p class="lab" id="annivLabel">記念日から</p>
+      <div class="num serif"><span id="daysCount">--</span><small>日目</small></div>
+      <p class="sub" id="annivSub">タップして記念日を設定</p>
+    </div>
+    <div class="card stat">
+      <div class="bg">📖</div>
+      <p class="lab">日記の数</p>
+      <div class="num serif" style="color:var(--ink)"><span id="totalCount">…</span><small>ページ</small></div>
+      <p class="sub" id="totalSub">読み込み中...</p>
+    </div>
+    <div class="card stat">
+      <div class="bg">🍪</div>
+      <p class="lab" id="monthLabel">今月の記録</p>
+      <div class="num serif" style="color:var(--ink)"><span id="monthCount">…</span><small>件</small></div>
+      <p class="sub">今月書いた日記の数</p>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div id="milestoneCard" class="card"></div>
+    <div id="streakCard" class="card"></div>
+  </section>
+
+  <section id="onThisDay" class="card hidden"></section>
+
+  <div class="tabs hide-lg">
+    <button type="button" id="tabCal" class="on" onclick="switchTab('calendar')">📅 カレンダー振り返り</button>
+    <button type="button" id="tabSearch" onclick="switchTab('search')">🔍 思い出一覧・検索</button>
+  </div>
+
+  <div class="cols">
+    <!-- 左：カレンダー -->
+    <div id="calCol" style="display:grid;gap:14px">
+      <div class="card" style="padding:16px">
+        <div class="cal-head">
+          <div class="cal-nav">
+            <button type="button" class="arrow" onclick="changeMonth(-1)" aria-label="前月">◀</button>
+            <div class="cal-sel">
+              <select id="calYear" class="pick serif" onchange="onCalPick()" aria-label="年"></select>
+              <select id="calMonth" class="pick serif" onchange="onCalPick()" aria-label="月"></select>
+            </div>
+            <button type="button" class="arrow" onclick="changeMonth(1)" aria-label="翌月">▶</button>
+          </div>
+          <button type="button" class="btn btn-soft hide-sm" style="padding:8px 12px" onclick="jumpToday()">今日へ</button>
+        </div>
+        <div class="dow"><div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div></div>
+        <div id="calGrid" class="cal-grid"></div>
+        <div class="cal-foot">
+          <span>● 日記がある日（多いほど濃い） ★ お気に入り</span>
+          <button type="button" class="btn btn-soft hide-lg" style="padding:7px 12px;font-size:.74rem" onclick="jumpToday()">今日へ</button>
+        </div>
+        <div id="moodSummary" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"></div>
+      </div>
+      <div id="selectedCard" class="card"></div>
+    </div>
+
+    <!-- 右：検索・一覧 -->
+    <div id="searchCol" class="hidden">
+      <div class="card">
+        <div class="row between">
+          <h2 class="h2 serif">🔍 思い出を探す・一覧</h2>
+          <span id="countBadge" class="chip">0 件</span>
+        </div>
+        <div class="search">
+          <input type="text" id="searchInput" oninput="onSearch()" placeholder="キーワードで検索（スペースで複数）">
+          <button type="button" id="clearBtn" class="x hidden" onclick="clearSearch()" aria-label="クリア">✕</button>
+        </div>
+        <div id="tagChips" class="chips"></div>
+        <button type="button" class="btn btn-soft" style="padding:9px 14px;font-size:.78rem" onclick="toggleAdv()">🎚 期間・並び順 <span id="advBadge" class="hidden badge" style="background:var(--accent);color:#fff;margin-left:4px"></span></button>
+        <div id="advPanel" class="adv hidden">
+          <div class="grid2" style="grid-template-columns:1fr 1fr">
+            <div><label class="lab">この日から</label><input type="date" id="fFrom" class="field" min="2004-01-01" max="2104-12-31" onchange="applyAdv()"></div>
+            <div><label class="lab">この日まで</label><input type="date" id="fTo" class="field" min="2004-01-01" max="2104-12-31" onchange="applyAdv()"></div>
+          </div>
+          <div>
+            <label class="lab">並び順</label>
+            <select id="fSort" class="field" onchange="applyAdv()"><option value="desc">新しい順</option><option value="asc">古い順</option></select>
+          </div>
+          <button type="button" class="help" style="text-align:left;color:var(--accent-d);text-decoration:underline" onclick="resetAdv()">条件をリセット</button>
+        </div>
+        <div id="timeline" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ============ 日記エディタ ============ -->
+<div id="editorModal" class="modal hidden">
+  <div class="panel">
+    <div class="panel-head">
+      <div style="min-width:0">
+        <h3 id="editorTitle" class="serif">思い出を記録する</h3>
+        <small id="saveInd">入力すると自動で保存されます</small>
+      </div>
+      <button type="button" class="small-btn" onclick="closeEditor()" aria-label="閉じる">✕</button>
+    </div>
+    <form id="diaryForm" class="panel-body" onsubmit="event.preventDefault();closeEditor();" oninput="onEditorInput()" onchange="onEditorInput()">
+      <div><label class="lab">日付（2004年〜2104年）</label><input type="date" id="eDate" class="field" required min="2004-01-01" max="2104-12-31"></div>
+      <div><label class="lab">タグ・カテゴリ</label><div id="eTags" class="opt-grid c5"></div></div>
+      <div><label class="lab">天気</label><div id="eWeather" class="opt-flex"></div></div>
+      <div><label class="lab">今日の気分</label><div id="eMood" class="opt-flex"></div></div>
+      <div><label class="lab">タイトル</label><input type="text" id="eTitle" class="field" maxlength="60" placeholder="例：駅前のカフェで読書した日"></div>
+      <div>
+        <div class="row between" style="margin-bottom:6px">
+          <label class="lab" style="margin:0">思い出メモ</label>
+          <select id="tplSelect" class="field" style="width:auto;padding:6px 10px;font-size:.78rem" onchange="applyTemplate(this)"></select>
+        </div>
+        <textarea id="eContent" class="field" rows="7" maxlength="10000" placeholder="今日あったこと、感じたこと、メモなど自由に書いてね..."></textarea>
+      </div>
+      <div>
+        <label class="fav-toggle"><input type="checkbox" id="eFav"><span class="box"><span class="off">☆ お気に入りにする</span><span class="on">★ お気に入り</span></span></label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" style="padding:14px">✓ 完了（自動で保存されます）</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ 設定 ============ -->
+<div id="settingsModal" class="modal hidden">
+  <div class="panel" style="max-width:460px">
+    <div class="panel-head">
+      <h3 class="serif">⚙️ 設定</h3>
+      <button type="button" class="small-btn" onclick="closeSettings()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="panel-body">
+      <div>
+        <label class="lab">🌓 表示（この端末のみ）</label>
+        <p class="help" style="margin-bottom:6px">テーマ</p>
+        <div id="themeBtns" class="row" style="margin-bottom:10px"></div>
+        <p class="help" style="margin-bottom:6px">文字サイズ</p>
+        <div id="fontBtns" class="row"></div>
+      </div>
+      <hr class="sep" style="margin:0">
+      <div>
+        <label class="lab">🎂 記念日カウンター</label>
+        <p class="help" style="margin-bottom:8px">設定すると「〇〇から△日目」と、100日ごと・周年のお知らせが出ます。変更は自動で保存されます。</p>
+        <input type="text" id="sAnnivName" class="field" maxlength="16" placeholder="記念日の名前（例：日記を始めた日）" onchange="saveAnniv()" style="margin-bottom:8px">
+        <input type="date" id="sAnnivDate" class="field" min="2004-01-01" max="2104-12-31" onchange="saveAnniv()">
+      </div>
+      <hr class="sep" style="margin:0">
+      <div>
+        <label class="lab">💾 保存とバックアップ</label>
+        <p class="help" style="margin-bottom:8px">日記はこの端末のブラウザ内にだけ保存され、サーバーには送信されません。そのぶん、<b>ブラウザのデータを消したり端末を替えたりすると日記も消える</b>ので、ときどき書き出しておくと安心です。</p>
+        <div id="storageInfo" class="code-box" style="margin-bottom:8px">読み込み中...</div>
+        <button type="button" class="btn btn-soft btn-block" style="padding:13px;background:var(--accent-l)" onclick="exportBackup()">📄 日記をテキストファイルに書き出す</button>
+        <p class="help" style="margin:12px 0 8px">書き出したファイルから日記を取り込めます（同じ内容は重複して入りません）。</p>
+        <input type="file" id="importFile" accept=".txt,text/plain" class="hidden" onchange="handleImportFile(event)">
+        <button type="button" class="btn btn-soft btn-block" style="padding:13px" onclick="document.getElementById('importFile').click()">📥 テキストファイルから読み込む</button>
+        <div id="importPreview" class="hidden" style="margin-top:10px;padding:12px;border-radius:14px;background:var(--accent-l);border:1px solid var(--accent)"></div>
+      </div>
+      <hr class="sep" style="margin:0">
+      <div>
+        <label class="lab">🔒 パスコードロック（この端末のみ・4桁）</label>
+        <p class="help" style="margin-bottom:8px">画面を覗かれないための簡易ロックです（データの暗号化ではありません）。4桁入力すると自動で設定されます。</p>
+        <input type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" id="sPin" class="field" style="letter-spacing:.3em" placeholder="新しい4桁の数字" oninput="onPinSetting()">
+        <div class="row between" style="margin-top:8px">
+          <span id="pinStatus" class="help">ロック：未設定</span>
+          <button type="button" id="clearPinBtn" class="help hidden" style="color:var(--danger);text-decoration:underline" onclick="clearPin()">ロックを解除する</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-soft btn-block" style="padding:13px" onclick="closeSettings()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 削除確認 ============ -->
+<div id="deleteModal" class="modal center hidden" style="z-index:50">
+  <div class="panel" style="padding:24px;text-align:center">
+    <div style="font-size:2rem">🗑️</div>
+    <h4 class="serif" style="margin:6px 0 4px">この日記を削除しますか？</h4>
+    <p class="help" style="margin-bottom:16px">削除した思い出は元に戻せません。</p>
+    <div class="row" style="gap:10px">
+      <button type="button" class="btn btn-soft" style="flex:1" onclick="closeDelete()">やめる</button>
+      <button type="button" class="btn btn-danger" style="flex:1" onclick="confirmDelete()">削除する</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span id="toastMsg"></span></div>
+
+<script>
+// =====================================================
+//  設定値
+// =====================================================
+const FAVICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' width='180' height='180'><rect width='64' height='64' fill='#F3E1CF'/><path d='M14 26h30v12a12 12 0 0 1-12 12h-6A12 12 0 0 1 14 38z' fill='#B5774B'/><path d='M44 29h4a6 6 0 0 1 0 12h-4' fill='none' stroke='#B5774B' stroke-width='4'/><path d='M22 11c-3 3 3 5 0 9M30 11c-3 3 3 5 0 9M38 11c-3 3 3 5 0 9' stroke='#8F5A34' stroke-width='2.5' fill='none' stroke-linecap='round'/><rect x='11' y='52' width='38' height='3' rx='1.5' fill='#8F5A34'/></svg>";
+const LS = { pin: 'cafeDiary.pinHash', theme: 'cafeDiary.theme', fontSize: 'cafeDiary.fontSize', reminder: 'cafeDiary.reminderDismissed', backup: 'cafeDiary.lastBackup', entries: 'cafeDiary.fallback.entries', prefs: 'cafeDiary.fallback.prefs' };
+const TAGS = ['日常', 'メモ', 'お出かけ', 'ごはん', '仕事', '記念日', '旅行', 'デート', '幸せ', '健康'];
+const TAG_EMOJI = { '日常': '☕', 'メモ': '📝', 'お出かけ': '🚶', 'ごはん': '🍰', '仕事': '💼', '記念日': '🎂', '旅行': '✈️', 'デート': '💕', '幸せ': '🥰', '健康': '🌿' };
+const WEATHERS = [['', 'なし'], ['☀️', 'はれ'], ['⛅', 'くもり時々はれ'], ['☁️', 'くもり'], ['🌧️', 'あめ'], ['⛄', 'ゆき'], ['🌬️', 'かぜ']];
+const MOODS = [['', 'なし'], ['😊', 'たのしい'], ['😆', '大笑い'], ['🥰', 'しあわせ'], ['😌', 'おだやか'], ['😢', 'かなしい'], ['😠', 'イライラ'], ['😴', 'つかれた']];
+const TEMPLATES = [
+  { label: '今日のできごと', text: '【今日のできごと】\n\n' },
+  { label: 'うれしかったこと', text: '【うれしかったこと】\n\n' },
+  { label: 'ありがとう', text: '【ありがとう】\n今日、ありがとうと思ったこと：\n' },
+  { label: '行った場所・食べたもの', text: '【行った場所】\n\n【食べたもの】\n\n【感想】\n' },
+  { label: '今日のひとこと反省', text: '【よかったこと】\n\n【うまくいかなかったこと】\n\n【明日やること】\n・\n' }
+];
+const CAL_MIN = 2004, CAL_MAX = 2104;
+const DATE_MIN = CAL_MIN + '-01-01', DATE_MAX = CAL_MAX + '-12-31';
+const $ = (id) => document.getElementById(id);
+const isDateInRange = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && s >= DATE_MIN && s <= DATE_MAX;
+
+// =====================================================
+//  localStorage（使えない環境ではメモリで代用）
+// =====================================================
+const mem = {};
+function lsGet(k) { try { const v = localStorage.getItem(k); if (v !== null) return v; } catch (e) {} return mem[k] ?? null; }
+function lsSet(k, v) { mem[k] = v; try { localStorage.setItem(k, v); } catch (e) {} }
+function lsRemove(k) { delete mem[k]; try { localStorage.removeItem(k); } catch (e) {} }
+
+// =====================================================
+//  保存先：この端末の IndexedDB（使えなければ localStorage）
+// =====================================================
+let idb = null;
+let storeKind = 'indexeddb'; // 'indexeddb' | 'localstorage'
+
+function openIDB() {
+  return new Promise((resolve) => {
+    try {
+      if (!window.indexedDB) return resolve(null);
+      const r = indexedDB.open('cafeDiary', 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        if (!d.objectStoreNames.contains('entries')) d.createObjectStore('entries', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+      };
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => resolve(null);
+      r.onblocked = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+}
+function idbTx(store, mode, fn) {
+  return new Promise((resolve, reject) => {
+    const t = idb.transaction(store, mode);
+    const out = fn(t.objectStore(store));
+    t.oncomplete = () => resolve(out && 'result' in out ? out.result : undefined);
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+  });
+}
+const Store = {
+  async init() {
+    idb = await openIDB();
+    storeKind = idb ? 'indexeddb' : 'localstorage';
+  },
+  async loadEntries() {
+    if (idb) return (await idbTx('entries', 'readonly', s => s.getAll())) || [];
+    try { return JSON.parse(lsGet(LS.entries) || '[]'); } catch (e) { return []; }
+  },
+  async putEntry(e) {
+    if (idb) { await idbTx('entries', 'readwrite', s => s.put(e)); return; }
+    const arr = diaryEntries.filter(x => x.id !== e.id); arr.push(e);
+    lsSet(LS.entries, JSON.stringify(arr));
+  },
+  async putMany(list) {
+    if (idb) { await idbTx('entries', 'readwrite', s => { list.forEach(e => s.put(e)); }); return; }
+    lsSet(LS.entries, JSON.stringify(diaryEntries.concat(list)));
+  },
+  async delEntry(id) {
+    if (idb) { await idbTx('entries', 'readwrite', s => s.delete(id)); return; }
+    lsSet(LS.entries, JSON.stringify(diaryEntries.filter(x => x.id !== id)));
+  },
+  async loadPrefs() {
+    if (idb) return (await idbTx('kv', 'readonly', s => s.get('prefs'))) || {};
+    try { return JSON.parse(lsGet(LS.prefs) || '{}'); } catch (e) { return {}; }
+  },
+  async savePrefs(p) {
+    if (idb) { await idbTx('kv', 'readwrite', s => s.put(p, 'prefs')); return; }
+    lsSet(LS.prefs, JSON.stringify(p));
+  }
+};
+
+// =====================================================
+//  状態
+// =====================================================
+let diaryEntries = [];
+let userSettings = { anniversaryDate: '', anniversaryName: '' };
+let loaded = false;
+let persisted = null;
+
+let calYear, calMonth, selectedDate = '';
+let tagFilter = 'すべて';
+let adv = { from: '', to: '', sort: 'desc' };
+let pendingDeleteId = null, pendingImport = null;
+let pinHash = '', enteredPin = '', pinChecking = false;
+let editingId = '', editingCreatedAt = '', editorDirty = false, autosaveTimer = null, indTimer = null;
+
+// =====================================================
+//  ユーティリティ
+// =====================================================
+const pad2 = (n) => String(n).padStart(2, '0');
+function fmtISO(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function fmtJP(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-').map(Number);
+  const w = ['日', '月', '火', '水', '木', '金', '土'][new Date(y, m - 1, d).getDay()];
+  return `${y}年${m}月${d}日 (${w})`;
+}
+function dayNum(y, m, d) { return Math.floor(Date.UTC(y, m - 1, d) / 86400000); }
+function dayNumOfStr(s) { const [y, m, d] = s.split('-').map(Number); return dayNum(y, m, d); }
+function strOfDayNum(n) { const t = new Date(n * 86400000); return `${t.getUTCFullYear()}年${t.getUTCMonth() + 1}月${t.getUTCDate()}日`; }
+function todayNum() { const t = new Date(); return dayNum(t.getFullYear(), t.getMonth() + 1, t.getDate()); }
+const tagEmoji = (t) => TAG_EMOJI[t] || '🌸';
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+function hl(text, words) {
+  const s = String(text ?? '');
+  if (!words.length) return esc(s);
+  const sorted = [...words].sort((a, b) => b.length - a.length);
+  const re = new RegExp('(' + sorted.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+  return s.split(re).map((p, i) => i % 2 === 1 ? `<mark>${esc(p)}</mark>` : esc(p)).join('');
+}
+function newId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '');
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+async function hashString(s) {
+  const text = 'cafe-diary:' + s;
+  try {
+    if (window.crypto && crypto.subtle) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 40);
+    }
+  } catch (e) {}
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) { const c = text.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(14, '0');
+}
+let toastTimer = null;
+function showToast(msg) {
+  $('toastMsg').textContent = msg;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2600);
+}
+function sortEntries() {
+  diaryEntries.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
+}
+
+// =====================================================
+//  表示設定
+// =====================================================
+function applyTheme() {
+  const t = lsGet(LS.theme) || 'auto';
+  const dark = t === 'dark' || (t === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.classList.toggle('dark', dark);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#1F1814' : '#F6EFE6');
+}
+function applyFontSize() {
+  const f = lsGet(LS.fontSize) || 'm';
+  if (f === 'm') document.documentElement.removeAttribute('data-fs'); else document.documentElement.setAttribute('data-fs', f);
+}
+function setTheme(v) { lsSet(LS.theme, v); applyTheme(); renderDisplayButtons(); }
+function setFontSize(v) { lsSet(LS.fontSize, v); applyFontSize(); renderDisplayButtons(); }
+function renderDisplayButtons() {
+  const th = lsGet(LS.theme) || 'auto', fs = lsGet(LS.fontSize) || 'm';
+  const mk = (cur, list, fn) => list.map(([v, l]) =>
+    `<button type="button" onclick="${fn}('${v}')" class="btn ${cur === v ? 'btn-primary' : 'btn-soft'}" style="flex:1;padding:10px 4px">${l}</button>`).join('');
+  $('themeBtns').innerHTML = mk(th, [['auto', '自動'], ['light', 'ライト'], ['dark', 'ダーク']], 'setTheme');
+  $('fontBtns').innerHTML = mk(fs, [['s', '小'], ['m', '標準'], ['l', '大']], 'setFontSize');
+}
+if (window.matchMedia) {
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if ((lsGet(LS.theme) || 'auto') === 'auto') applyTheme(); });
+}
+
+// iPhoneのホーム画面用アイコン（PNG）を作る
+function setupAppleIcon() {
+  try {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = 180; c.height = 180;
+        c.getContext('2d').drawImage(img, 0, 0, 180, 180);
+        const link = document.createElement('link');
+        link.rel = 'apple-touch-icon'; link.sizes = '180x180'; link.href = c.toDataURL('image/png');
+        document.head.appendChild(link);
+      } catch (e) {}
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(FAVICON_SVG);
+  } catch (e) {}
+}
+
+function setupScrollLock() {
+  const ids = ['lock', 'editorModal', 'settingsModal', 'deleteModal'];
+  const update = () => { document.body.style.overflow = ids.some(id => !$(id).classList.contains('hidden')) ? 'hidden' : ''; };
+  const obs = new MutationObserver(update);
+  ids.forEach(id => obs.observe($(id), { attributes: true, attributeFilter: ['class'] }));
+  update();
+}
+
+// =====================================================
+//  パスコード
+// =====================================================
+function buildPinPad() {
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'];
+  $('pinPad').innerHTML = keys.map(k => k === '' ? '<div></div>' : k === 'del'
+    ? '<button type="button" data-pin="del" aria-label="削除" style="color:var(--sub)">⌫</button>'
+    : `<button type="button" data-pin="${k}">${k}</button>`).join('');
+  $('pinPad').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pin]'); if (!b) return;
+    if (b.dataset.pin === 'del') pinDelete(); else pinKey(b.dataset.pin);
+  });
+}
+function showLock() { enteredPin = ''; updatePinDots(); $('lock').classList.remove('hidden'); }
+async function pinKey(d) {
+  if (pinChecking || enteredPin.length >= 4) return;
+  enteredPin += d; updatePinDots();
+  if (enteredPin.length === 4) {
+    pinChecking = true;
+    const h = await hashString('pin:' + enteredPin);
+    pinChecking = false;
+    if (h === pinHash) {
+      $('lock').classList.add('hidden'); enteredPin = ''; updatePinDots();
+    } else {
+      $('pinDots').classList.add('shake');
+      $('pinPrompt').textContent = 'パスコードが違います';
+      $('pinPrompt').style.color = 'var(--danger)';
+      setTimeout(() => {
+        $('pinDots').classList.remove('shake'); enteredPin = ''; updatePinDots();
+        $('pinPrompt').textContent = 'パスコード（4桁）を入力してください';
+        $('pinPrompt').style.color = '';
+      }, 500);
+    }
+  }
+}
+function pinDelete() { if (pinChecking) return; enteredPin = enteredPin.slice(0, -1); updatePinDots(); }
+function updatePinDots() { document.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('on', i < enteredPin.length)); }
+function forgotPin() {
+  if (confirm('パスコードロックを解除しますか？\n日記のデータは消えません。解除後、設定からまた新しく設定できます。')) {
+    pinHash = ''; lsRemove(LS.pin); $('lock').classList.add('hidden'); showToast('ロックを解除しました');
+  }
+}
+document.addEventListener('keydown', (e) => {
+  if ($('lock').classList.contains('hidden')) return;
+  if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === 'Backspace') pinDelete();
+});
+function refreshPinStatus() {
+  $('pinStatus').textContent = pinHash ? 'ロック：設定済み（変更は新しい4桁を入力）' : 'ロック：未設定';
+  $('clearPinBtn').classList.toggle('hidden', !pinHash);
+}
+async function onPinSetting() {
+  const el = $('sPin'); const c = el.value.replace(/\D/g, '');
+  if (c !== el.value) el.value = c;
+  if (c.length === 4) {
+    pinHash = await hashString('pin:' + c); lsSet(LS.pin, pinHash);
+    el.value = ''; refreshPinStatus(); showToast('パスコードを設定しました');
+  }
+}
+function clearPin() { pinHash = ''; lsRemove(LS.pin); refreshPinStatus(); showToast('パスコードロックを解除しました'); }
+
+// =====================================================
+//  統計・節目・連続記録・この日の思い出
+// =====================================================
+function annivName() { return (userSettings.anniversaryName || '').trim() || '記念日'; }
+
+function updateStats() {
+  const now = new Date();
+  $('monthLabel').textContent = `${now.getMonth() + 1}月の記録`;
+  if (loaded) {
+    const ym = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+    const days = new Set(diaryEntries.map(e => e.date)).size;
+    $('totalCount').textContent = diaryEntries.length.toLocaleString();
+    $('totalSub').textContent = diaryEntries.length ? `${days.toLocaleString()}日分の思い出` : 'まだ日記がありません';
+    $('monthCount').textContent = diaryEntries.filter(e => (e.date || '').startsWith(ym)).length.toLocaleString();
+  } else {
+    $('totalCount').textContent = '…'; $('totalSub').textContent = '読み込み中...'; $('monthCount').textContent = '…';
+  }
+  if (isDateInRange(userSettings.anniversaryDate)) {
+    const [y, m, d] = userSettings.anniversaryDate.split('-').map(Number);
+    const n = todayNum() - dayNum(y, m, d) + 1;
+    $('annivLabel').textContent = `${annivName()}から`;
+    $('daysCount').textContent = n >= 1 ? n.toLocaleString() : '0';
+    $('annivSub').textContent = n >= 1 ? `${y}/${m}/${d}` : `予定日: ${y}/${m}/${d}`;
+  } else {
+    $('annivLabel').textContent = '記念日から';
+    $('daysCount').textContent = '--';
+    $('annivSub').textContent = 'タップして記念日を設定';
+  }
+}
+
+function calcStreaks() {
+  const tn = todayNum(); const set = new Set();
+  diaryEntries.forEach(e => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.date || '')) { const n = dayNumOfStr(e.date); if (n <= tn) set.add(n); } });
+  const nums = [...set].sort((a, b) => a - b);
+  let longest = 0, run = 0, prev = null;
+  nums.forEach(n => { run = (prev !== null && n === prev + 1) ? run + 1 : 1; if (run > longest) longest = run; prev = n; });
+  const todayHas = set.has(tn);
+  let cur = todayHas ? tn : (set.has(tn - 1) ? tn - 1 : null), current = 0;
+  while (cur !== null && set.has(cur)) { current++; cur--; }
+  return { current, longest, todayHas };
+}
+
+function updateInsights() {
+  const ms = $('milestoneCard'), sk = $('streakCard');
+  if (!loaded) sk.innerHTML = '<p class="help">読み込み中...</p>';
+  else {
+    const s = calcStreaks();
+    const yc = diaryEntries.filter(e => (e.date || '').startsWith(String(new Date().getFullYear()))).length;
+    const hint = s.todayHas ? '今日も書けています ✓' : (s.current > 0 ? '今日書くと記録がのびます' : '今日書いて記録をはじめよう');
+    sk.innerHTML = `<p class="label-sm">🔥 連続記録</p>
+      <div><span class="serif" style="font-size:1.8rem;font-weight:700;color:var(--accent-d)">${s.current}</span><span style="font-size:.85rem;margin-left:4px">日連続</span></div>
+      <p class="help">最長 ${s.longest}日 ・ 今年 ${yc}件</p>
+      <p class="help" style="color:var(--accent-d)">${hint}</p>`;
+  }
+  if (!isDateInRange(userSettings.anniversaryDate)) {
+    ms.innerHTML = `<p class="label-sm">🎉 節目のお知らせ</p>
+      <p style="font-size:.88rem">記念日を設定すると、100日ごとや周年をお知らせします。</p>
+      <button type="button" class="help" style="color:var(--accent-d);text-decoration:underline;margin-top:6px" onclick="openSettings()">記念日を設定する</button>`;
+    return;
+  }
+  const [ay, am, ad] = userSettings.anniversaryDate.split('-').map(Number);
+  const tn = todayNum(), startNum = dayNum(ay, am, ad), n = tn - startNum + 1;
+  if (n < 1) {
+    ms.innerHTML = `<p class="label-sm">🎉 ${esc(annivName())}</p><p style="font-size:.9rem">あと <b style="color:var(--accent-d)">${startNum - tn}</b> 日（${ay}年${am}月${ad}日）</p>`;
+    return;
+  }
+  const lines = []; let celebrate = '';
+  const next100 = Math.ceil(n / 100) * 100, until = next100 - n;
+  if (until === 0) celebrate = `今日は ${n} 日目の記念日です！`;
+  else lines.push(`<b style="color:var(--accent-d)">${next100}日目</b>まで あと ${until}日（${strOfDayNum(startNum + next100 - 1)}）`);
+  let yearLine = '';
+  const cy = new Date().getFullYear();
+  for (let y = cy; y <= cy + 2; y++) {
+    if (y <= ay) continue;
+    const num = dayNum(y, am, ad); if (num < tn) continue;
+    const yrs = y - ay;
+    if (num === tn) celebrate = (celebrate ? celebrate + ' ' : '') + `今日は ${yrs} 周年です！`;
+    else yearLine = `<b style="color:var(--accent-d)">${yrs}周年</b>まで あと ${num - tn}日（${y}年${am}月${ad}日）`;
+    break;
+  }
+  if (yearLine) lines.push(yearLine);
+  ms.innerHTML = `<p class="label-sm">🎉 ${esc(annivName())}の節目</p>
+    ${celebrate ? `<p style="font-weight:700;color:var(--accent-d);margin-bottom:4px">🎊 ${esc(celebrate)}</p>` : ''}
+    <p style="font-size:.88rem">${lines.map(l => `<span style="display:block">${l}</span>`).join('')}</p>`;
+}
+
+function renderOnThisDay() {
+  const box = $('onThisDay');
+  if (!loaded) { box.classList.add('hidden'); return; }
+  const now = new Date(), md = `${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`, ty = now.getFullYear();
+  const list = diaryEntries.filter(e => /^\d{4}-\d{2}-\d{2}$/.test(e.date || '') && e.date.slice(5) === md && Number(e.date.slice(0, 4)) < ty).sort((a, b) => b.date.localeCompare(a.date));
+  if (!list.length) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  box.innerHTML = `<p class="label-sm" style="color:var(--accent-d)">📅 この日の思い出（${now.getMonth() + 1}月${now.getDate()}日）</p>
+    <div style="display:grid;gap:8px;margin-top:8px">
+    ${list.slice(0, 5).map(e => `
+      <div class="tl-item" data-action="jump" data-date="${esc(e.date)}">
+        <span style="font-size:.76rem;font-weight:700;color:var(--accent-d);white-space:nowrap">${ty - Number(e.date.slice(0, 4))}年前</span>
+        <div class="tl-body"><p class="tl-title serif">${e.mood ? esc(e.mood) + ' ' : ''}${esc(e.title)}</p><p class="tl-text">${esc(e.content)}</p></div>
+      </div>`).join('')}</div>
+    ${list.length > 5 ? `<p class="help" style="margin-top:6px">ほか ${list.length - 5} 件</p>` : ''}`;
+}
+
+function renderNotices() {
+  const box = $('notices'); let html = '';
+  if (loaded) {
+    const today = fmtISO(new Date());
+    if (!diaryEntries.some(e => e.date === today) && lsGet(LS.reminder) !== today) {
+      const s = calcStreaks();
+      html += `<div class="notice"><div class="t"><b>📝 今日の日記は、まだ書かれていません</b>
+        <p>${s.current > 0 ? `いま ${s.current}日連続です。今日も一言だけ残しませんか？` : 'ひとことだけでも、今日の思い出を残しませんか？'}</p></div>
+        <button type="button" class="btn btn-soft" style="padding:8px 12px;font-size:.76rem" data-action="dismiss-reminder">あとで</button>
+        <button type="button" class="btn btn-primary" style="padding:8px 14px;font-size:.76rem" data-action="write" data-date="${today}">今日を書く</button></div>`;
+    }
+    const last = Number(lsGet(LS.backup) || 0);
+    const dismissedKey = 'cafeDiary.backupDismissed';
+    if (diaryEntries.length >= 5 && Date.now() - last > 30 * 86400000 && lsGet(dismissedKey) !== fmtISO(new Date())) {
+      html += `<div class="notice" style="background:var(--soft);border-color:var(--line)"><div class="t"><b>💾 バックアップのおすすめ</b>
+        <p>日記はこの端末の中だけにあります。${last ? '最後の書き出しから1か月以上たっています。' : 'まだ書き出していません。'}</p></div>
+        <button type="button" class="btn btn-soft" style="padding:8px 12px;font-size:.76rem" data-action="dismiss-backup">あとで</button>
+        <button type="button" class="btn btn-primary" style="padding:8px 14px;font-size:.76rem" data-action="backup-now">書き出す</button></div>`;
+    }
+  }
+  box.innerHTML = html;
+}
+
+// =====================================================
+//  カレンダー
+// =====================================================
+function populatePickers() {
+  const ySel = $('calYear'), mSel = $('calMonth');
+  if (ySel.options.length !== CAL_MAX - CAL_MIN + 1) {
+    ySel.innerHTML = '';
+    for (let y = CAL_MIN; y <= CAL_MAX; y++) { const o = document.createElement('option'); o.value = y; o.textContent = y + '年'; ySel.appendChild(o); }
+  }
+  if (mSel.options.length !== 12) {
+    mSel.innerHTML = '';
+    for (let m = 0; m < 12; m++) { const o = document.createElement('option'); o.value = m; o.textContent = (m + 1) + '月'; mSel.appendChild(o); }
+  }
+  ySel.value = calYear; mSel.value = calMonth;
+}
+function onCalPick() { calYear = Number($('calYear').value); calMonth = Number($('calMonth').value); renderCalendar(); }
+
+function renderCalendar() {
+  populatePickers();
+  const grid = $('calGrid'); grid.innerHTML = '';
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const dim = new Date(calYear, calMonth + 1, 0).getDate();
+  const todayStr = fmtISO(new Date());
+  const info = {};
+  diaryEntries.forEach(e => { const o = info[e.date] || (info[e.date] = { c: 0, fav: false }); o.c++; if (e.favorite) o.fav = true; });
+  for (let i = 0; i < first; i++) grid.appendChild(document.createElement('div'));
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${calYear}-${pad2(calMonth + 1)}-${pad2(d)}`;
+    const it = info[ds];
+    const dow = (first + d - 1) % 7;
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = 'day' + (ds === selectedDate ? ' sel' : ds === todayStr ? ' today' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '');
+    b.onclick = () => selectDate(ds);
+    let marks = '<span class="marks"></span>';
+    if (it) {
+      const op = it.c >= 3 ? 1 : it.c === 2 ? .75 : .45;
+      marks = `<span class="marks"><span class="m" style="opacity:${op}"></span>${it.c >= 2 ? `<span class="m" style="opacity:${op}"></span>` : ''}${it.fav ? '<span class="star">★</span>' : ''}</span>`;
+    }
+    b.innerHTML = `<span>${d}</span>${marks}`;
+    grid.appendChild(b);
+  }
+  renderMoodSummary();
+}
+
+function renderMoodSummary() {
+  const box = $('moodSummary');
+  const prefix = `${calYear}-${pad2(calMonth + 1)}`;
+  const list = diaryEntries.filter(e => e.mood && (e.date || '').startsWith(prefix)).sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt || '').localeCompare(b.createdAt || ''));
+  if (!list.length) { box.innerHTML = `<p class="help">${calMonth + 1}月は、気分の記録がまだありません。</p>`; return; }
+  const counts = {}; list.forEach(e => { counts[e.mood] = (counts[e.mood] || 0) + 1; });
+  box.innerHTML = `<p class="label-sm">${calMonth + 1}月の気分の流れ</p>
+    <div class="mood-row">${list.map(e => `<button type="button" data-action="jump" data-date="${esc(e.date)}"><span class="e">${esc(e.mood)}</span><span class="d">${Number(e.date.slice(8, 10))}日</span></button>`).join('')}</div>
+    <div class="wrapflex" style="margin-top:6px">${Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([m, c]) => `<span class="chip">${esc(m)} ${c}</span>`).join('')}</div>`;
+}
+
+function changeMonth(delta) {
+  let y = calYear, m = calMonth + delta;
+  if (m > 11) { m = 0; y++; } else if (m < 0) { m = 11; y--; }
+  if (y < CAL_MIN || y > CAL_MAX) { showToast(`${CAL_MIN}年〜${CAL_MAX}年の範囲で選べます`); return; }
+  calYear = y; calMonth = m; renderCalendar();
+}
+function jumpToday() { const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); selectedDate = fmtISO(n); renderCalendar(); renderSelected(); }
+function selectDate(ds) { selectedDate = ds; renderCalendar(); renderSelected(); }
+
+function setupSwipe() {
+  const grid = $('calGrid'); let sx = 0, sy = 0;
+  grid.addEventListener('touchstart', (e) => { sx = e.changedTouches[0].clientX; sy = e.changedTouches[0].clientY; }, { passive: true });
+  grid.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dy) < 40) changeMonth(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+// =====================================================
+//  選択日の日記
+// =====================================================
+function badges(e) {
+  return `<span class="badge">${tagEmoji(e.tag)} ${esc(e.tag || '日常')}</span>
+    ${e.weather ? `<span style="font-size:1.05rem" title="天気">${esc(e.weather)}</span>` : ''}
+    ${e.mood ? `<span style="font-size:1.05rem" title="気分">${esc(e.mood)}</span>` : ''}`;
+}
+function renderSelected() {
+  const c = $('selectedCard');
+  const list = diaryEntries.filter(e => e.date === selectedDate).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  const f = fmtJP(selectedDate);
+  if (!list.length) {
+    c.innerHTML = `<div style="text-align:center;padding:14px 0">
+      <p class="label-sm" style="color:var(--accent-d)">${f}</p>
+      <p class="serif" style="font-weight:700;margin-bottom:4px">この日の日記はまだありません</p>
+      <p class="help" style="margin-bottom:14px">今日のできごとや気持ちを、ゆっくり書き留めませんか？</p>
+      <button type="button" class="btn btn-soft" style="background:var(--accent-l)" data-action="write" data-date="${esc(selectedDate)}">✒️ この日の日記を書く</button></div>`;
+    return;
+  }
+  c.innerHTML = `<div class="row between" style="padding-bottom:10px;margin-bottom:14px;border-bottom:1px solid var(--line)">
+      <div><span class="label-sm" style="color:var(--accent-d);display:block;margin:0">${f}</span><span class="help">${list.length}件の思い出</span></div>
+      <button type="button" class="btn btn-soft" style="padding:8px 12px;font-size:.76rem" data-action="write" data-date="${esc(selectedDate)}">＋ 追記する</button></div>
+    ${list.map(e => `<article style="display:grid;gap:10px">
+      <div class="row between" style="align-items:flex-start">
+        <div style="min-width:0">
+          <div class="wrapflex" style="margin-bottom:6px">${badges(e)}</div>
+          <h3 class="serif" style="font-size:1.08rem;line-height:1.4;word-break:break-word">${esc(e.title)}</h3>
+        </div>
+        <div class="row" style="flex-shrink:0">
+          <button type="button" class="small-btn" data-action="fav" data-id="${esc(e.id)}" style="color:${e.favorite ? '#E0A800' : 'var(--sub)'}" aria-label="お気に入り">${e.favorite ? '★' : '☆'}</button>
+          <button type="button" class="small-btn" data-action="edit" data-id="${esc(e.id)}" aria-label="編集">✏️</button>
+          <button type="button" class="small-btn" data-action="delete" data-id="${esc(e.id)}" aria-label="削除">🗑️</button>
+        </div>
+      </div>
+      <p class="entry-body">${esc(e.content)}</p>
+    </article>`).join('<hr class="sep">')}`;
+}
+
+async function toggleFavorite(id) {
+  const e = diaryEntries.find(x => x.id === id); if (!e) return;
+  const upd = { ...e, favorite: !e.favorite, updatedAt: new Date().toISOString() };
+  try {
+    await Store.putEntry(upd);
+    diaryEntries = diaryEntries.map(x => x.id === id ? upd : x);
+    renderAll(); showToast(upd.favorite ? '★ お気に入りに入れました' : 'お気に入りを外しました');
+  } catch (err) { console.error(err); showToast('変更できませんでした'); }
+}
+
+// =====================================================
+//  検索・一覧
+// =====================================================
+function renderTagChips() {
+  const items = [['すべて', 'すべて'], ['★', '★ お気に入り'], ...TAGS.map(t => [t, `${TAG_EMOJI[t]} ${t}`])];
+  $('tagChips').innerHTML = items.map(([v, l]) => `<button type="button" class="${tagFilter === v ? 'on' : ''}" onclick="setTagFilter('${v}')">${l}</button>`).join('');
+}
+function setTagFilter(t) { tagFilter = t; renderTagChips(); renderTimeline(); }
+function onSearch() { $('clearBtn').classList.toggle('hidden', $('searchInput').value.length === 0); renderTimeline(); }
+function clearSearch() { $('searchInput').value = ''; $('clearBtn').classList.add('hidden'); renderTimeline(); }
+function toggleAdv() { $('advPanel').classList.toggle('hidden'); }
+function applyAdv() { adv.from = $('fFrom').value; adv.to = $('fTo').value; adv.sort = $('fSort').value; updateAdvBadge(); renderTimeline(); }
+function resetAdv() { adv = { from: '', to: '', sort: 'desc' }; $('fFrom').value = ''; $('fTo').value = ''; $('fSort').value = 'desc'; updateAdvBadge(); renderTimeline(); }
+function updateAdvBadge() {
+  const n = (adv.from ? 1 : 0) + (adv.to ? 1 : 0) + (adv.sort !== 'desc' ? 1 : 0);
+  $('advBadge').textContent = n; $('advBadge').classList.toggle('hidden', n === 0);
+}
+function renderTimeline() {
+  const words = ($('searchInput').value || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const list = diaryEntries.filter(e => {
+    if (tagFilter === '★') { if (!e.favorite) return false; }
+    else if (tagFilter !== 'すべて' && e.tag !== tagFilter) return false;
+    if (adv.from && (e.date || '') < adv.from) return false;
+    if (adv.to && (e.date || '') > adv.to) return false;
+    if (words.length) {
+      const hay = [e.title, e.content, e.tag, e.mood, e.weather, e.date].join('\n').toLowerCase();
+      if (!words.every(w => hay.includes(w))) return false;
+    }
+    return true;
+  });
+  list.sort((a, b) => { const c = (a.date || '').localeCompare(b.date || '') || (a.createdAt || '').localeCompare(b.createdAt || ''); return adv.sort === 'asc' ? c : -c; });
+  $('countBadge').textContent = `${list.length} 件`;
+  if (!list.length) {
+    $('timeline').innerHTML = `<div class="empty"><b>該当する思い出が見つかりませんでした</b>条件を変えるか、「日記を書く」から追加しましょう。</div>`;
+    return;
+  }
+  $('timeline').innerHTML = list.map(e => `
+    <div class="tl-item" data-action="jump" data-date="${esc(e.date)}">
+      <div class="tl-ico">${tagEmoji(e.tag)}</div>
+      <div class="tl-body">
+        <div class="row between" style="gap:6px"><span class="tl-date">${fmtJP(e.date)}</span>
+          <span class="row" style="gap:5px;flex-shrink:0">${e.favorite ? '<span style="color:#E0A800;font-size:.7rem">★</span>' : ''}${e.weather ? `<span style="font-size:.9rem">${esc(e.weather)}</span>` : ''}${e.mood ? `<span style="font-size:.9rem">${esc(e.mood)}</span>` : ''}</span></div>
+        <h4 class="tl-title serif">${hl(e.title, words)}</h4>
+        <p class="tl-text">${hl(e.content, words)}</p>
+      </div>
+    </div>`).join('');
+}
+function jumpToEntryDate(ds) {
+  if (!ds) return;
+  const [y, m] = ds.split('-').map(Number);
+  calYear = y; calMonth = m - 1; selectedDate = ds;
+  renderCalendar(); renderSelected();
+  if (window.innerWidth < 1024) switchTab('calendar');
+  $('selectedCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function switchTab(tab) {
+  const cal = tab === 'calendar';
+  $('calCol').classList.toggle('hidden', !cal);
+  $('searchCol').classList.toggle('hidden', cal);
+  $('tabCal').classList.toggle('on', cal);
+  $('tabSearch').classList.toggle('on', !cal);
+}
+
+// =====================================================
+//  日記エディタ（自動保存）
+// =====================================================
+function buildEditorControls() {
+  $('eTags').innerHTML = TAGS.map((t, i) => `<label class="opt"><input type="radio" name="eTag" value="${t}" ${i === 0 ? 'checked' : ''}><span>${TAG_EMOJI[t]}<br>${t}</span></label>`).join('');
+  $('eWeather').innerHTML = WEATHERS.map(([v, l], i) => `<label class="opt big" title="${l}"><input type="radio" name="eWeather" value="${v}" ${i === 0 ? 'checked' : ''}><span>${v || '<small style="font-size:.74rem">なし</small>'}</span></label>`).join('');
+  $('eMood').innerHTML = MOODS.map(([v, l], i) => `<label class="opt big" title="${l}"><input type="radio" name="eMood" value="${v}" ${i === 0 ? 'checked' : ''}><span>${v || '<small style="font-size:.74rem">なし</small>'}</span></label>`).join('');
+  $('tplSelect').innerHTML = '<option value="">テンプレート ▼</option>' + TEMPLATES.map((t, i) => `<option value="${i}">${t.label}</option>`).join('');
+}
+function applyTemplate(sel) {
+  if (sel.value === '') return;
+  const t = TEMPLATES[Number(sel.value)]; sel.value = ''; if (!t) return;
+  const ta = $('eContent'); const cur = ta.value.replace(/\s+$/, '');
+  ta.value = cur ? cur + '\n\n' + t.text : t.text;
+  ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+  onEditorInput();
+}
+function setSaveInd(state) {
+  const map = {
+    idle: ['入力すると自動で保存されます', 'var(--sub)'], typing: ['入力中...', 'var(--sub)'], saving: ['保存中...', 'var(--sub)'],
+    saved: ['自動保存しました ✓', 'var(--sage)'], range: [`日付は${CAL_MIN}年〜${CAL_MAX}年の範囲で入力してください`, 'var(--danger)'],
+    error: ['保存できませんでした。もう一度お試しください', 'var(--danger)']
+  };
+  const [t, c] = map[state] || map.idle;
+  $('saveInd').textContent = t; $('saveInd').style.color = c;
+}
+function resetEditor(ds) {
+  $('diaryForm').reset(); $('eDate').value = ds;
+  editingId = ''; editingCreatedAt = ''; editorDirty = false; clearTimeout(autosaveTimer); setSaveInd('idle');
+}
+function openEditor(ds) {
+  let date = (typeof ds === 'string' && ds) ? ds : (selectedDate || fmtISO(new Date()));
+  if (!isDateInRange(date)) date = fmtISO(new Date());
+  resetEditor(date);
+  $('editorTitle').textContent = '新しい思い出を記録する';
+  $('editorModal').classList.remove('hidden');
+  setTimeout(() => $('eTitle').focus(), 50);
+}
+function editEntry(id) {
+  const e = diaryEntries.find(x => x.id === id); if (!e) return;
+  resetEditor(e.date);
+  editingId = e.id; editingCreatedAt = e.createdAt || '';
+  $('eTitle').value = e.title === '（無題）' ? '' : (e.title || '');
+  $('eContent').value = e.content || '';
+  document.querySelectorAll('input[name="eTag"]').forEach(r => { r.checked = r.value === e.tag; });
+  document.querySelectorAll('input[name="eMood"]').forEach(r => { r.checked = r.value === (e.mood || ''); });
+  document.querySelectorAll('input[name="eWeather"]').forEach(r => { r.checked = r.value === (e.weather || ''); });
+  $('eFav').checked = !!e.favorite;
+  $('editorTitle').textContent = '思い出を編集する';
+  $('editorModal').classList.remove('hidden');
+}
+function onEditorInput() {
+  editorDirty = true; setSaveInd('typing');
+  clearTimeout(autosaveTimer); autosaveTimer = setTimeout(persistEditor, 1000);
+}
+// 戻り値: 'saved' | 'clean' | 'empty' | 'range' | 'error'
+async function persistEditor() {
+  clearTimeout(autosaveTimer);
+  if (!editorDirty) return 'clean';
+  const date = $('eDate').value, title = $('eTitle').value.trim(), content = $('eContent').value.trim();
+  if (!date || (!title && !content)) { setSaveInd('idle'); return 'empty'; }
+  if (!isDateInRange(date)) { setSaveInd('range'); return 'range'; }
+  const tag = document.querySelector('input[name="eTag"]:checked');
+  const mood = document.querySelector('input[name="eMood"]:checked');
+  const weather = document.querySelector('input[name="eWeather"]:checked');
+  const nowIso = new Date().toISOString();
+  if (!editingId) editingId = newId();
+  if (!editingCreatedAt) editingCreatedAt = nowIso;
+  const entry = {
+    id: editingId, date, title: title || '（無題）', content,
+    tag: tag ? tag.value : '日常', mood: mood ? mood.value : '', weather: weather ? weather.value : '',
+    favorite: $('eFav').checked, createdAt: editingCreatedAt, updatedAt: nowIso
+  };
+  editorDirty = false; setSaveInd('saving');
+  try {
+    await Store.putEntry(entry);
+    const i = diaryEntries.findIndex(x => x.id === entry.id);
+    if (i >= 0) diaryEntries[i] = entry; else diaryEntries.push(entry);
+    sortEntries(); renderAll();
+    requestPersist();
+    if (!editorDirty) {
+      setSaveInd('saved'); clearTimeout(indTimer);
+      indTimer = setTimeout(() => { if (!editorDirty) setSaveInd('idle'); }, 2200);
+    }
+    return 'saved';
+  } catch (err) { console.error(err); editorDirty = true; setSaveInd('error'); return 'error'; }
+}
+async function closeEditor() {
+  const r = await persistEditor();
+  if (r === 'range') { showToast(`日付は${CAL_MIN}年〜${CAL_MAX}年の範囲で入力してください`); return; }
+  if (r === 'error') { showToast('まだ保存できていません'); return; }
+  const date = $('eDate').value;
+  $('editorModal').classList.add('hidden'); clearTimeout(autosaveTimer);
+  if (r === 'saved' && isDateInRange(date)) {
+    const [y, m] = date.split('-').map(Number);
+    calYear = y; calMonth = m - 1; selectedDate = date;
+    renderCalendar(); renderSelected(); showToast('思い出を保存しました');
+  }
+}
+
+// =====================================================
+//  削除
+// =====================================================
+function requestDelete(id) { pendingDeleteId = id; $('deleteModal').classList.remove('hidden'); }
+function closeDelete() { pendingDeleteId = null; $('deleteModal').classList.add('hidden'); }
+async function confirmDelete() {
+  if (!pendingDeleteId) return;
+  try {
+    await Store.delEntry(pendingDeleteId);
+    diaryEntries = diaryEntries.filter(e => e.id !== pendingDeleteId);
+    renderAll(); showToast('日記を削除しました');
+  } catch (err) { console.error(err); showToast('削除に失敗しました'); }
+  finally { closeDelete(); }
+}
+
+// =====================================================
+//  保存の永続化・バックアップ
+// =====================================================
+async function requestPersist() {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      if (navigator.storage.persisted && await navigator.storage.persisted()) { persisted = true; return; }
+      persisted = await navigator.storage.persist();
+    }
+  } catch (e) {}
+}
+async function updateStorageInfo() {
+  const el = $('storageInfo');
+  if (!loaded) { el.textContent = '読み込み中...'; return; }
+  const bytes = new Blob([JSON.stringify(diaryEntries)]).size;
+  const kb = bytes / 1024, size = kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(2)} MB`;
+  const last = Number(lsGet(LS.backup) || 0);
+  let st = '';
+  if (persisted === true) st = '・データ保護：オン';
+  else if (persisted === false) st = '・データ保護：未許可（ホーム画面に追加すると安心です）';
+  el.innerHTML = `日記：${diaryEntries.length.toLocaleString()}件 / 約${size}<br>保存先：${storeKind === 'indexeddb' ? 'この端末のブラウザ内' : 'この端末（簡易保存）'}${esc(st)}<br>最後の書き出し：${last ? new Date(last).toLocaleDateString('ja-JP') : 'まだありません'}`;
+}
+
+function exportBackup() {
+  if (!loaded || !diaryEntries.length) { showToast('書き出せる日記がまだありません'); return; }
+  const list = [...diaryEntries].sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || '').localeCompare(b.createdAt || ''));
+  const now = new Date();
+  const stamp = `${now.getFullYear()}/${pad2(now.getMonth() + 1)}/${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+  const line = '='.repeat(40), thin = '-'.repeat(40);
+  const head = ['カフェ日記 バックアップ', `書き出し日時: ${stamp}`, `日記の数: ${list.length}件`];
+  if (userSettings.anniversaryDate) head.push(`記念日: ${userSettings.anniversaryDate}`);
+  if (userSettings.anniversaryName) head.push(`記念日の名前: ${userSettings.anniversaryName}`);
+  const blocks = list.map(e => {
+    const rows = [line, `日付: ${fmtJP(e.date)}`, `項目: ${e.tag || '日常'}`];
+    if (e.weather) rows.push(`天気: ${e.weather}`);
+    if (e.mood) rows.push(`気分: ${e.mood}`);
+    if (e.favorite) rows.push('お気に入り: ★');
+    rows.push(`タイトル: ${e.title || ''}`, thin, e.content || '', '');
+    return rows.join('\n');
+  });
+  const text = head.join('\n') + '\n\n' + blocks.join('\n') + '\n' + line + '\n';
+  const fileName = `cafe-diary-backup-${fmtISO(now).replace(/-/g, '')}.txt`;
+  try {
+    const blob = new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    lsSet(LS.backup, String(Date.now()));
+    showToast(`${list.length}件の日記を書き出しました`);
+    updateStorageInfo(); renderNotices();
+  } catch (err) { console.error(err); showToast('書き出しに失敗しました'); }
+}
+
+// 書き出したテキストを解析（旧「ふたりの思い出日記」の形式も読めます）
+function parseBackupText(raw) {
+  const text = String(raw || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  const lines = text.split('\n');
+  const isDelim = (s) => /^={20,}$/.test((s || '').trim());
+  const isStart = (k) => isDelim(lines[k]) && /^日付[:：]/.test((lines[k + 1] || '').trim());
+  const isFinal = (k) => isDelim(lines[k]) && lines.slice(k + 1).every(l => !l.trim());
+  const am = text.match(/^記念日[:：]\s*(\d{4}-\d{2}-\d{2})\s*$/m);
+  const nm = text.match(/^記念日の名前[:：]\s*(.+)$/m);
+  const entries = []; let broken = 0, i = 0;
+  while (i < lines.length) {
+    if (!isStart(i)) { i++; continue; }
+    let end = lines.length;
+    for (let k = i + 1; k < lines.length; k++) { if (isStart(k) || isFinal(k)) { end = k; break; } }
+    const block = lines.slice(i + 1, end); i = end;
+    let dashIdx = -1;
+    for (let k = 0; k < Math.min(block.length, 12); k++) { if (/^-{10,}$/.test((block[k] || '').trim())) { dashIdx = k; break; } }
+    if (dashIdx < 0) { broken++; continue; }
+    const f = {};
+    for (let k = 0; k < dashIdx; k++) {
+      const m = block[k].match(/^(日付|項目|タイトル|書いた人|気分|天気|お気に入り)[:：]\s*(.*)$/);
+      if (m && !(m[1] in f)) f[m[1]] = m[2].trim();
+    }
+    let ds = ''; const dl = f['日付'] || '';
+    const jp = dl.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/), iso = dl.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (jp) ds = `${jp[1]}-${pad2(jp[2])}-${pad2(jp[3])}`; else if (iso) ds = iso[0];
+    let ok = false;
+    if (ds) { const [y, m, d] = ds.split('-').map(Number); const dt = new Date(y, m - 1, d); ok = dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d; }
+    if (!ok || !('タイトル' in f)) { broken++; continue; }
+    let tag = f['項目'] || ''; if (!TAGS.includes(tag)) tag = '日常';
+    entries.push({
+      date: ds, tag, title: f['タイトル'] || '（無題）',
+      content: block.slice(dashIdx + 1).join('\n').replace(/\s+$/, ''),
+      mood: f['気分'] || '', weather: f['天気'] || '', favorite: /★|はい|true|1/i.test(f['お気に入り'] || '')
+    });
+  }
+  return { entries, anniversary: am ? am[1] : '', anniversaryName: nm ? nm[1].trim() : '', broken };
+}
+const entryKey = (e) => `${e.date}\u0000${e.title || ''}\u0000${e.content || ''}`;
+
+async function handleImportFile(ev) {
+  const file = ev.target.files && ev.target.files[0]; ev.target.value = '';
+  if (!file) return;
+  if (!loaded) { showToast('読み込み中です。少し待ってからお試しください'); return; }
+  if (file.size > 20 * 1024 * 1024) { showToast('ファイルが大きすぎます（20MBまで）'); return; }
+  let text = '';
+  try { text = await file.text(); } catch (err) { showToast('ファイルを読み込めませんでした'); return; }
+  const parsed = parseBackupText(text);
+  if (!parsed.entries.length) {
+    pendingImport = null;
+    showImportPreview(`<p style="color:var(--danger);font-weight:700;font-size:.82rem">日記が見つかりませんでした。</p><p class="help">このアプリ（または旧バージョン）で書き出したテキストファイルを選んでください。</p>`);
+    return;
+  }
+  const existing = new Set(diaryEntries.map(entryKey)), seen = new Set(), toAdd = [];
+  let dup = 0, out = 0;
+  for (const e of parsed.entries) {
+    if (!isDateInRange(e.date)) { out++; continue; }
+    const k = entryKey(e); if (existing.has(k) || seen.has(k)) { dup++; continue; }
+    seen.add(k); toAdd.push(e);
+  }
+  pendingImport = { toAdd, anniversary: parsed.anniversary, anniversaryName: parsed.anniversaryName };
+  const unread = parsed.broken + out;
+  showImportPreview(`<p style="font-weight:700;font-size:.82rem;margin-bottom:6px">ファイルの内容を確認しました</p>
+    <ul class="help" style="list-style:none;margin-bottom:10px">
+      <li>見つかった日記：<b>${parsed.entries.length}件</b></li>
+      <li>取り込む日記：<b style="color:var(--accent-d)">${toAdd.length}件</b></li>
+      <li>すでにあるためスキップ：${dup}件</li>
+      ${unread ? `<li>読み取れなかった・範囲外：${unread}件</li>` : ''}
+    </ul>
+    <div class="row" style="gap:8px">
+      <button type="button" class="btn btn-soft" style="flex:1;padding:10px" onclick="cancelImport()">やめる</button>
+      <button type="button" id="runImportBtn" class="btn btn-primary" style="flex:1;padding:10px" onclick="runImport()" ${toAdd.length ? '' : 'disabled style="flex:1;padding:10px;opacity:.4"'}>${toAdd.length ? `${toAdd.length}件を取り込む` : '取り込む日記がありません'}</button>
+    </div>`);
+}
+function showImportPreview(html) { const b = $('importPreview'); b.innerHTML = html; b.classList.remove('hidden'); }
+function cancelImport() { pendingImport = null; const b = $('importPreview'); b.innerHTML = ''; b.classList.add('hidden'); }
+async function runImport() {
+  if (!pendingImport || !pendingImport.toAdd.length) return;
+  const btn = $('runImportBtn'); if (btn) { btn.disabled = true; btn.textContent = '取り込み中...'; }
+  const { toAdd, anniversary, anniversaryName } = pendingImport;
+  const base = Date.now();
+  const records = toAdd.map((e, idx) => {
+    const iso = new Date(base + idx).toISOString();
+    return { id: newId(), date: e.date, title: e.title, content: e.content, tag: e.tag, mood: e.mood || '', weather: e.weather || '', favorite: !!e.favorite, createdAt: iso, updatedAt: iso };
+  });
+  try {
+    await Store.putMany(records);
+    diaryEntries = diaryEntries.concat(records); sortEntries();
+    if (anniversary && !userSettings.anniversaryDate && isDateInRange(anniversary)) {
+      userSettings = { ...userSettings, anniversaryDate: anniversary, anniversaryName: userSettings.anniversaryName || anniversaryName || '' };
+      try { await Store.savePrefs(userSettings); } catch (e) {}
+    }
+    showToast(`${records.length}件の日記を取り込みました`);
+    cancelImport(); renderAll(); updateStorageInfo(); requestPersist();
+  } catch (err) {
+    console.error(err); showToast('取り込みに失敗しました。もう一度お試しください');
+    if (btn) { btn.disabled = false; btn.textContent = `${toAdd.length}件を取り込む`; }
+  }
+}
+
+// =====================================================
+//  設定
+// =====================================================
+function openSettings() {
+  $('sAnnivDate').value = userSettings.anniversaryDate || '';
+  $('sAnnivName').value = userSettings.anniversaryName || '';
+  $('sPin').value = '';
+  renderDisplayButtons(); refreshPinStatus(); updateStorageInfo(); cancelImport();
+  $('settingsModal').classList.remove('hidden');
+}
+function closeSettings() { $('settingsModal').classList.add('hidden'); }
+async function saveAnniv() {
+  const date = $('sAnnivDate').value, name = $('sAnnivName').value.trim().slice(0, 16);
+  if (date && !isDateInRange(date)) { showToast(`記念日は${CAL_MIN}年〜${CAL_MAX}年の範囲で入力してください`); return; }
+  try {
+    userSettings = { ...userSettings, anniversaryDate: date, anniversaryName: name };
+    await Store.savePrefs(userSettings);
+    updateStats(); updateInsights(); showToast('記念日を保存しました');
+  } catch (err) { console.error(err); showToast('記念日を保存できませんでした'); }
+}
+
+// =====================================================
+//  クリック委譲
+// =====================================================
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-action]'); if (!el) return;
+  const { action, id, date } = el.dataset;
+  if (action === 'edit') editEntry(id);
+  else if (action === 'delete') requestDelete(id);
+  else if (action === 'fav') toggleFavorite(id);
+  else if (action === 'write') openEditor(date);
+  else if (action === 'jump') jumpToEntryDate(date);
+  else if (action === 'dismiss-reminder') { lsSet(LS.reminder, fmtISO(new Date())); renderNotices(); }
+  else if (action === 'dismiss-backup') { lsSet('cafeDiary.backupDismissed', fmtISO(new Date())); renderNotices(); }
+  else if (action === 'backup-now') exportBackup();
+});
+
+// =====================================================
+//  描画・起動
+// =====================================================
+function renderAll() {
+  updateStats(); updateInsights(); renderNotices(); renderOnThisDay();
+  renderCalendar(); renderSelected(); renderTimeline();
+}
+
+(async function boot() {
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth(); selectedDate = fmtISO(now);
+  pinHash = lsGet(LS.pin) || '';
+  buildPinPad(); if (pinHash) showLock();
+  applyTheme(); applyFontSize();
+  buildEditorControls(); renderTagChips();
+  setupAppleIcon(); setupScrollLock(); setupSwipe();
+  renderAll();
+
+  try {
+    await Store.init();
+    diaryEntries = await Store.loadEntries(); sortEntries();
+    userSettings = { anniversaryDate: '', anniversaryName: '', ...(await Store.loadPrefs()) };
+    loaded = true;
+    $('statusText').textContent = 'この端末の中だけに保存中';
+    try { if (navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted(); } catch (e) {}
+    if (diaryEntries.length) requestPersist();
+  } catch (err) {
+    console.error(err);
+    $('statusText').textContent = '保存先を開けませんでした';
+    showToast('保存先を開けませんでした。ブラウザの設定をご確認ください');
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
