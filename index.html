@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>カフェ日記</title>
 
-<!-- ファビコン：コーヒーカップ（SVG版。iPhone用PNG版はJSで追加） -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F3E1CF'/%3E%3Cpath d='M14 26h30v12a12 12 0 0 1-12 12h-6A12 12 0 0 1 14 38z' fill='%23B5774B'/%3E%3Cpath d='M44 29h4a6 6 0 0 1 0 12h-4' fill='none' stroke='%23B5774B' stroke-width='4'/%3E%3Cpath d='M22 11c-3 3 3 5 0 9M30 11c-3 3 3 5 0 9M38 11c-3 3 3 5 0 9' stroke='%238F5A34' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Crect x='11' y='52' width='38' height='3' rx='1.5' fill='%238F5A34'/%3E%3C/svg%3E">
+<!-- ファビコン：☕ 絵文字（SVG版。PNG版・iPhone用はJSで追加） -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%98%95%3C/text%3E%3C/svg%3E">
 
 <script>
   // 表示設定を描画前に反映（ちらつき防止）
@@ -523,7 +523,7 @@
 // =====================================================
 //  設定値
 // =====================================================
-const FAVICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' width='180' height='180'><rect width='64' height='64' fill='#F3E1CF'/><path d='M14 26h30v12a12 12 0 0 1-12 12h-6A12 12 0 0 1 14 38z' fill='#B5774B'/><path d='M44 29h4a6 6 0 0 1 0 12h-4' fill='none' stroke='#B5774B' stroke-width='4'/><path d='M22 11c-3 3 3 5 0 9M30 11c-3 3 3 5 0 9M38 11c-3 3 3 5 0 9' stroke='#8F5A34' stroke-width='2.5' fill='none' stroke-linecap='round'/><rect x='11' y='52' width='38' height='3' rx='1.5' fill='#8F5A34'/></svg>";
+const FAVICON_EMOJI = '☕';
 const LS = { pin: 'cafeDiary.pinHash', theme: 'cafeDiary.theme', fontSize: 'cafeDiary.fontSize', reminder: 'cafeDiary.reminderDismissed', backup: 'cafeDiary.lastBackup', entries: 'cafeDiary.fallback.entries', prefs: 'cafeDiary.fallback.prefs' };
 const TAGS = ['日常', 'メモ', 'お出かけ', 'ごはん', '仕事', '記念日', '旅行', 'デート', '幸せ', '健康'];
 const TAG_EMOJI = { '日常': '☕', 'メモ': '📝', 'お出かけ': '🚶', 'ごはん': '🍰', '仕事': '💼', '記念日': '🎂', '旅行': '✈️', 'デート': '💕', '幸せ': '🥰', '健康': '🌿' };
@@ -710,20 +710,26 @@ if (window.matchMedia) {
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if ((lsGet(LS.theme) || 'auto') === 'auto') applyTheme(); });
 }
 
-// iPhoneのホーム画面用アイコン（PNG）を作る
+// 絵文字からPNGアイコンを作る（Safari・iPhoneホーム画面用）
+function makeEmojiPng(size, bg) {
+  const c = document.createElement('canvas'); c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, size, size); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `${Math.floor(size * 0.72)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+  ctx.fillText(FAVICON_EMOJI, size / 2, size / 2 + size * 0.04);
+  return c.toDataURL('image/png');
+}
 function setupAppleIcon() {
   try {
-    const img = new Image();
-    img.onload = () => {
-      try {
-        const c = document.createElement('canvas'); c.width = 180; c.height = 180;
-        c.getContext('2d').drawImage(img, 0, 0, 180, 180);
-        const link = document.createElement('link');
-        link.rel = 'apple-touch-icon'; link.sizes = '180x180'; link.href = c.toDataURL('image/png');
-        document.head.appendChild(link);
-      } catch (e) {}
+    const add = (rel, href, sizes) => {
+      const link = document.createElement('link');
+      link.rel = rel; if (rel === 'icon') link.type = 'image/png';
+      if (sizes) link.sizes = sizes; link.href = href;
+      document.head.appendChild(link);
     };
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(FAVICON_SVG);
+    add('icon', makeEmojiPng(64, null), '64x64');
+    add('apple-touch-icon', makeEmojiPng(180, '#F3E1CF'), '180x180');
   } catch (e) {}
 }
 
