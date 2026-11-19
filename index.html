@@ -238,6 +238,65 @@
   .fav-toggle input:checked + .box .on { display: inline; }
   .fav-toggle input:checked + .box .off { display: none; }
 
+  /* ---- スマートフォン：検索・一覧を画面幅に合わせる ---- */
+  #searchCol, #searchCol > .card, #timeline, .tl-item, .tl-body { min-width: 0; }
+  .search-head { align-items: flex-start; flex-wrap: wrap; }
+  .search-head .h2 { min-width: 0; line-height: 1.45; }
+  .search-adv-toggle { width: 100%; min-height: 44px; text-align: center; }
+  .search-date-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chips { max-width: 100%; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .chips button { min-height: 38px; }
+  .tl-item { align-items: flex-start; }
+  .tl-body { overflow-wrap: anywhere; }
+  .tl-title { white-space: normal; overflow-wrap: anywhere; line-height: 1.45; }
+  .tl-text { overflow-wrap: anywhere; }
+
+  @media (max-width: 639px) {
+    .wrap { padding-left: 10px; padding-right: 10px; }
+    .top-in { padding: 8px 10px; gap: 6px; }
+    .logo { width: 36px; height: 36px; border-radius: 12px; font-size: 20px; }
+    .brand { gap: 7px; }
+    .brand h1 { font-size: .98rem; }
+    .brand p { font-size: 9px; }
+    .btn-row { gap: 6px; }
+    .icon-btn { width: 38px; height: 38px; border-radius: 12px; }
+    .btn-row .btn { padding: 9px 10px; font-size: .76rem; border-radius: 12px; }
+    main { gap: 10px; padding-top: 10px; }
+    .card { padding: 13px; border-radius: 18px; }
+    .grid3 { gap: 6px; }
+    .stat { padding: 9px 7px; }
+    .stat .lab { font-size: 9px; white-space: normal; line-height: 1.35; }
+    .stat .num { font-size: 1.25rem; }
+    .stat .sub { font-size: 9px; }
+    .tabs { position: sticky; top: 57px; z-index: 20; gap: 3px; }
+    .tabs button { min-width: 0; padding: 10px 5px; font-size: .72rem; line-height: 1.35; }
+    #searchCol > .card { padding: 14px 12px; }
+    .search-head { gap: 8px; }
+    .search-head .h2 { font-size: .94rem; }
+    .search { margin: 10px 0 9px; }
+    .search input { min-height: 48px; padding: 12px 42px 12px 13px; font-size: 16px; border-radius: 14px; }
+    .search .x { width: 30px; height: 30px; right: 7px; }
+    .chips { gap: 7px; padding: 2px 1px 8px; margin-right: -2px; }
+    .chips button { padding: 8px 12px; font-size: .78rem; }
+    .search-adv-toggle { padding: 11px 12px !important; font-size: .8rem !important; }
+    .adv { padding: 11px; gap: 11px; }
+    .search-date-grid { grid-template-columns: minmax(0, 1fr); gap: 9px; }
+    .field { min-height: 44px; }
+    #timeline { margin-top: 11px !important; gap: 8px; }
+    .tl-item { padding: 10px; gap: 9px; border-radius: 14px; }
+    .tl-ico { width: 38px; height: 38px; border-radius: 11px; font-size: 1.05rem; }
+    .tl-date { font-size: 10px; }
+    .tl-title { font-size: .92rem; }
+    .tl-text { font-size: .75rem; }
+    .empty { padding: 22px 10px; }
+  }
+  @media (max-width: 360px) {
+    .brand p { display: none; }
+    .btn-row .btn { padding: 8px; font-size: .7rem; }
+    .grid3 { gap: 4px; }
+    .stat { padding: 8px 5px; }
+    .stat .num { font-size: 1.12rem; }
+  }
   @media (max-width: 639px) {
     input, select, textarea { font-size: 16px !important; }
     input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 44px; text-align: left; }
@@ -372,7 +431,7 @@
           <button type="button" id="clearBtn" class="x hidden" onclick="clearSearch()" aria-label="クリア">✕</button>
         </div>
         <div id="tagChips" class="chips"></div>
-        <button type="button" class="btn btn-soft" style="padding:9px 14px;font-size:.78rem" onclick="toggleAdv()">🎚 期間・並び順 <span id="advBadge" class="hidden badge" style="background:var(--accent);color:#fff;margin-left:4px"></span></button>
+        <button type="button" class="btn btn-soft search-adv-toggle" style="padding:9px 14px;font-size:.78rem" onclick="toggleAdv()">🎚 期間・並び順 <span id="advBadge" class="hidden badge" style="background:var(--accent);color:#fff;margin-left:4px"></span></button>
         <div id="advPanel" class="adv hidden">
           <div class="grid2" style="grid-template-columns:1fr 1fr">
             <div><label class="lab">この日から</label><input type="date" id="fFrom" class="field" min="2004-01-01" max="2104-12-31" onchange="applyAdv()"></div>
