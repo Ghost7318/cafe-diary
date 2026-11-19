@@ -141,6 +141,9 @@
   .day.sel .m { background: #fff; }
   .day .star { font-size: 8px; color: #E0A800; line-height: 1; }
   .day.sel .star { color: #fff; }
+  .day .ev { position: absolute; top: 2px; right: 3px; font-size: 10px; line-height: 1; }
+  .ev-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--accent-l); border: 1px solid var(--line); font-size: .84rem; margin-top: 6px; }
+  .btn:disabled { opacity: .4; cursor: default; }
   .cal-foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: var(--sub); }
   .mood-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
   .mood-row::-webkit-scrollbar { display: none; }
@@ -348,10 +351,11 @@
         <div class="dow"><div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div></div>
         <div id="calGrid" class="cal-grid"></div>
         <div class="cal-foot">
-          <span>● 日記がある日（多いほど濃い） ★ お気に入り</span>
+          <span>● 日記がある日（多いほど濃い） ★ お気に入り ・ 🎂 誕生日など</span>
           <button type="button" class="btn btn-soft hide-lg" style="padding:7px 12px;font-size:.74rem" onclick="jumpToday()">今日へ</button>
         </div>
         <div id="moodSummary" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"></div>
+        <div id="upcomingEvents" class="hidden" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)"></div>
       </div>
       <div id="selectedCard" class="card"></div>
     </div>
@@ -441,6 +445,12 @@
       </div>
       <hr class="sep" style="margin:0">
       <div>
+        <label class="lab">🎁 誕生日・毎年の記念日</label>
+        <p class="help" style="margin-bottom:8px">友達や家族の誕生日などを登録すると、カレンダーの該当日に毎年マークが付きます（上の記念日カウンターとは別です）。</p>
+        <button type="button" class="btn btn-soft btn-block" style="padding:13px" onclick="openEvents()">🎂 誕生日・記念日を管理する <span id="evCountBadge" class="chip" style="margin-left:4px">0件</span></button>
+      </div>
+      <hr class="sep" style="margin:0">
+      <div>
         <label class="lab">💾 保存とバックアップ</label>
         <p class="help" style="margin-bottom:8px">日記はこの端末のブラウザ内にだけ保存され、サーバーには送信されません。そのぶん、<b>ブラウザのデータを消したり端末を替えたりすると日記も消える</b>ので、ときどき書き出しておくと安心です。</p>
         <div id="storageInfo" class="code-box" style="margin-bottom:8px">読み込み中...</div>
@@ -461,6 +471,35 @@
         </div>
       </div>
       <button type="button" class="btn btn-soft btn-block" style="padding:13px" onclick="closeSettings()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 誕生日・毎年の記念日 ============ -->
+<div id="eventModal" class="modal hidden" style="z-index:45">
+  <div class="panel" style="max-width:460px">
+    <div class="panel-head">
+      <h3 class="serif">🎁 誕生日・毎年の記念日</h3>
+      <button type="button" class="small-btn" onclick="closeEvents()" aria-label="閉じる">✕</button>
+    </div>
+    <div class="panel-body">
+      <p class="help">登録すると、カレンダーの該当日に毎年マークが付きます。</p>
+      <div id="eventList"></div>
+      <hr class="sep" style="margin:0">
+      <div style="display:grid;gap:10px">
+        <label class="lab" id="evFormTitle" style="margin:0">新しく追加する</label>
+        <input type="text" id="evName" class="field" maxlength="20" placeholder="名前（例：お母さん・Aちゃん）">
+        <div id="evTypes" class="opt-flex"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <select id="evMonth" class="field" aria-label="月"></select>
+          <select id="evDay" class="field" aria-label="日"></select>
+        </div>
+        <input type="text" id="evYear" class="field" inputmode="numeric" maxlength="4" placeholder="生まれ年・始まった年（任意：年齢や周年を表示）">
+        <div class="row" style="gap:8px">
+          <button type="button" id="evCancelBtn" class="btn btn-soft hidden" style="flex:1" onclick="resetEventForm()">編集をやめる</button>
+          <button type="button" id="evSaveBtn" class="btn btn-primary" style="flex:2;padding:13px" onclick="saveEvent()">追加する</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -689,7 +728,7 @@ function setupAppleIcon() {
 }
 
 function setupScrollLock() {
-  const ids = ['lock', 'editorModal', 'settingsModal', 'deleteModal'];
+  const ids = ['lock', 'editorModal', 'settingsModal', 'eventModal', 'deleteModal'];
   const update = () => { document.body.style.overflow = ids.some(id => !$(id).classList.contains('hidden')) ? 'hidden' : ''; };
   const obs = new MutationObserver(update);
   ids.forEach(id => obs.observe($(id), { attributes: true, attributeFilter: ['class'] }));
@@ -920,10 +959,13 @@ function renderCalendar() {
       const op = it.c >= 3 ? 1 : it.c === 2 ? .75 : .45;
       marks = `<span class="marks"><span class="m" style="opacity:${op}"></span>${it.c >= 2 ? `<span class="m" style="opacity:${op}"></span>` : ''}${it.fav ? '<span class="star">★</span>' : ''}</span>`;
     }
-    b.innerHTML = `<span>${d}</span>${marks}`;
+    const evs = eventsOn(calYear, calMonth + 1, d);
+    const evMark = evs.length ? `<span class="ev" title="${esc(evs.map(x => x.name).join('・'))}">${(EV_TYPES[evs[0].type] || EV_TYPES.other)[0]}</span>` : '';
+    b.innerHTML = `<span>${d}</span>${marks}${evMark}`;
     grid.appendChild(b);
   }
   renderMoodSummary();
+  renderUpcoming();
 }
 
 function renderMoodSummary() {
@@ -964,6 +1006,15 @@ function badges(e) {
     ${e.mood ? `<span style="font-size:1.05rem" title="気分">${esc(e.mood)}</span>` : ''}`;
 }
 function renderSelected() {
+  renderSelectedBase();
+  const c = $('selectedCard');
+  const [y, m, d] = selectedDate.split('-').map(Number);
+  const evs = eventsOn(y, m, d);
+  const top = evs.length ? `<div style="margin-bottom:12px">${evs.map(ev => `<div class="ev-item" style="font-weight:700;color:var(--accent-d)">${esc(evLabel(ev, y))}</div>`).join('')}</div>` : '';
+  c.innerHTML = top + c.innerHTML + `<div style="margin-top:12px;text-align:center"><button type="button" class="help" style="color:var(--accent-d);text-decoration:underline" onclick="openEvents('${esc(selectedDate)}')">🎁 この日を毎年の記念日に追加</button></div>`;
+}
+
+function renderSelectedBase() {
   const c = $('selectedCard');
   const list = diaryEntries.filter(e => e.date === selectedDate).sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
   const f = fmtJP(selectedDate);
@@ -1214,6 +1265,7 @@ function exportBackup() {
   const head = ['カフェ日記 バックアップ', `書き出し日時: ${stamp}`, `日記の数: ${list.length}件`];
   if (userSettings.anniversaryDate) head.push(`記念日: ${userSettings.anniversaryDate}`);
   if (userSettings.anniversaryName) head.push(`記念日の名前: ${userSettings.anniversaryName}`);
+  getEvents().forEach(ev => head.push(`予定: ${ev.month}/${ev.day} | ${ev.type} | ${String(ev.name).replace(/[|｜]/g, '/')} | ${ev.year || ''}`));
   const blocks = list.map(e => {
     const rows = [line, `日付: ${fmtJP(e.date)}`, `項目: ${e.tag || '日常'}`];
     if (e.weather) rows.push(`天気: ${e.weather}`);
@@ -1245,6 +1297,16 @@ function parseBackupText(raw) {
   const isFinal = (k) => isDelim(lines[k]) && lines.slice(k + 1).every(l => !l.trim());
   const am = text.match(/^記念日[:：]\s*(\d{4}-\d{2}-\d{2})\s*$/m);
   const nm = text.match(/^記念日の名前[:：]\s*(.+)$/m);
+  let firstStart = lines.length;
+  for (let k = 0; k < lines.length; k++) { if (isStart(k)) { firstStart = k; break; } }
+  const events = [];
+  lines.slice(0, firstStart).forEach(l => {
+    const m = l.match(/^予定[:：]\s*(\d{1,2})\/(\d{1,2})\s*[|｜]\s*(birthday|anniv|other)\s*[|｜]\s*(.+?)\s*[|｜]\s*(\d{0,4})\s*$/);
+    if (m) {
+      const mo = Number(m[1]), dy = Number(m[2]);
+      if (mo >= 1 && mo <= 12 && dy >= 1 && dy <= 31) events.push({ id: newId(), type: m[3], month: mo, day: dy, name: m[4], year: m[5] ? Number(m[5]) : 0 });
+    }
+  });
   const entries = []; let broken = 0, i = 0;
   while (i < lines.length) {
     if (!isStart(i)) { i++; continue; }
@@ -1272,7 +1334,7 @@ function parseBackupText(raw) {
       mood: f['気分'] || '', weather: f['天気'] || '', favorite: /★|はい|true|1/i.test(f['お気に入り'] || '')
     });
   }
-  return { entries, anniversary: am ? am[1] : '', anniversaryName: nm ? nm[1].trim() : '', broken };
+  return { entries, events, anniversary: am ? am[1] : '', anniversaryName: nm ? nm[1].trim() : '', broken };
 }
 const entryKey = (e) => `${e.date}\u0000${e.title || ''}\u0000${e.content || ''}`;
 
@@ -1296,26 +1358,32 @@ async function handleImportFile(ev) {
     const k = entryKey(e); if (existing.has(k) || seen.has(k)) { dup++; continue; }
     seen.add(k); toAdd.push(e);
   }
-  pendingImport = { toAdd, anniversary: parsed.anniversary, anniversaryName: parsed.anniversaryName };
+  const evKey = (x) => `${x.type}|${x.month}|${x.day}|${x.name}`;
+  const exEv = new Set(getEvents().map(evKey));
+  const newEvents = [];
+  (parsed.events || []).forEach(x => { const k = evKey(x); if (!exEv.has(k)) { exEv.add(k); newEvents.push(x); } });
+  pendingImport = { toAdd, newEvents, anniversary: parsed.anniversary, anniversaryName: parsed.anniversaryName };
   const unread = parsed.broken + out;
+  const canRun = toAdd.length > 0 || newEvents.length > 0;
   showImportPreview(`<p style="font-weight:700;font-size:.82rem;margin-bottom:6px">ファイルの内容を確認しました</p>
     <ul class="help" style="list-style:none;margin-bottom:10px">
       <li>見つかった日記：<b>${parsed.entries.length}件</b></li>
       <li>取り込む日記：<b style="color:var(--accent-d)">${toAdd.length}件</b></li>
       <li>すでにあるためスキップ：${dup}件</li>
+      ${newEvents.length ? `<li>誕生日・記念日：<b style="color:var(--accent-d)">${newEvents.length}件</b>も取り込みます</li>` : ''}
       ${unread ? `<li>読み取れなかった・範囲外：${unread}件</li>` : ''}
     </ul>
     <div class="row" style="gap:8px">
       <button type="button" class="btn btn-soft" style="flex:1;padding:10px" onclick="cancelImport()">やめる</button>
-      <button type="button" id="runImportBtn" class="btn btn-primary" style="flex:1;padding:10px" onclick="runImport()" ${toAdd.length ? '' : 'disabled style="flex:1;padding:10px;opacity:.4"'}>${toAdd.length ? `${toAdd.length}件を取り込む` : '取り込む日記がありません'}</button>
+      <button type="button" id="runImportBtn" class="btn btn-primary" style="flex:1;padding:10px" onclick="runImport()" ${canRun ? '' : 'disabled'}>${canRun ? `${toAdd.length}件を取り込む` : '取り込む日記がありません'}</button>
     </div>`);
 }
 function showImportPreview(html) { const b = $('importPreview'); b.innerHTML = html; b.classList.remove('hidden'); }
 function cancelImport() { pendingImport = null; const b = $('importPreview'); b.innerHTML = ''; b.classList.add('hidden'); }
 async function runImport() {
-  if (!pendingImport || !pendingImport.toAdd.length) return;
+  if (!pendingImport || (!pendingImport.toAdd.length && !pendingImport.newEvents.length)) return;
   const btn = $('runImportBtn'); if (btn) { btn.disabled = true; btn.textContent = '取り込み中...'; }
-  const { toAdd, anniversary, anniversaryName } = pendingImport;
+  const { toAdd, newEvents, anniversary, anniversaryName } = pendingImport;
   const base = Date.now();
   const records = toAdd.map((e, idx) => {
     const iso = new Date(base + idx).toISOString();
@@ -1328,7 +1396,10 @@ async function runImport() {
       userSettings = { ...userSettings, anniversaryDate: anniversary, anniversaryName: userSettings.anniversaryName || anniversaryName || '' };
       try { await Store.savePrefs(userSettings); } catch (e) {}
     }
-    showToast(`${records.length}件の日記を取り込みました`);
+    if (newEvents.length) {
+      try { userSettings = { ...userSettings, events: [...getEvents(), ...newEvents] }; await Store.savePrefs(userSettings); } catch (e) {}
+    }
+    showToast(`${records.length}件の日記${newEvents.length ? `と${newEvents.length}件の誕生日・記念日` : ''}を取り込みました`);
     cancelImport(); renderAll(); updateStorageInfo(); requestPersist();
   } catch (err) {
     console.error(err); showToast('取り込みに失敗しました。もう一度お試しください');
@@ -1344,6 +1415,7 @@ function openSettings() {
   $('sAnnivName').value = userSettings.anniversaryName || '';
   $('sPin').value = '';
   renderDisplayButtons(); refreshPinStatus(); updateStorageInfo(); cancelImport();
+  $('evCountBadge').textContent = `${getEvents().length}件`;
   $('settingsModal').classList.remove('hidden');
 }
 function closeSettings() { $('settingsModal').classList.add('hidden'); }
@@ -1355,6 +1427,126 @@ async function saveAnniv() {
     await Store.savePrefs(userSettings);
     updateStats(); updateInsights(); showToast('記念日を保存しました');
   } catch (err) { console.error(err); showToast('記念日を保存できませんでした'); }
+}
+
+// =====================================================
+//  誕生日・毎年の記念日（カレンダーにだけ表示）
+// =====================================================
+const EV_TYPES = { birthday: ['🎂', '誕生日'], anniv: ['💍', '記念日'], other: ['🎁', 'その他'] };
+let evEditingId = '';
+const getEvents = () => Array.isArray(userSettings.events) ? userSettings.events : [];
+const isLeap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+
+// m は 1〜12。2/29生まれは、うるう年でない年は2/28に表示
+function eventsOn(y, m, d) {
+  return getEvents().filter(ev => (ev.month === m && ev.day === d) || (ev.month === 2 && ev.day === 29 && m === 2 && d === 28 && !isLeap(y)));
+}
+function evLabel(ev, y) {
+  const [emo] = EV_TYPES[ev.type] || EV_TYPES.other;
+  let s = `${emo} ${ev.name}`;
+  if (ev.type === 'birthday') s += 'の誕生日';
+  if (ev.year && y > ev.year) s += ev.type === 'birthday' ? `（${y - ev.year}歳）` : `（${y - ev.year}周年）`;
+  return s;
+}
+function renderUpcoming() {
+  const box = $('upcomingEvents'); if (!box) return;
+  if (!getEvents().length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  const items = [], base = new Date(); base.setHours(0, 0, 0, 0);
+  for (let i = 0; i <= 60 && items.length < 4; i++) {
+    const dt = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+    eventsOn(dt.getFullYear(), dt.getMonth() + 1, dt.getDate()).forEach(ev => items.push({ ev, dt, i }));
+  }
+  if (!items.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  box.classList.remove('hidden');
+  box.innerHTML = `<p class="label-sm">🎁 もうすぐの誕生日・記念日</p>` + items.slice(0, 4).map(({ ev, dt, i }) =>
+    `<button type="button" class="ev-item" data-action="jump" data-date="${fmtISO(dt)}" style="width:100%;text-align:left"><span style="min-width:0;word-break:break-word">${esc(evLabel(ev, dt.getFullYear()))}</span><span class="help" style="flex-shrink:0">${i === 0 ? '今日' : `${dt.getMonth() + 1}/${dt.getDate()}（あと${i}日）`}</span></button>`).join('');
+}
+function buildEventForm() {
+  if ($('evMonth').options.length) return;
+  $('evMonth').innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">${i + 1}月</option>`).join('');
+  $('evDay').innerHTML = Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}日</option>`).join('');
+  $('evTypes').innerHTML = Object.entries(EV_TYPES).map(([k, [emo, label]], i) =>
+    `<label class="opt"><input type="radio" name="evType" value="${k}" ${i === 0 ? 'checked' : ''}><span>${emo} ${label}</span></label>`).join('');
+}
+function resetEventForm(ds) {
+  evEditingId = '';
+  $('evName').value = ''; $('evYear').value = '';
+  const r = document.querySelector('input[name="evType"][value="birthday"]'); if (r) r.checked = true;
+  const base = (typeof ds === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(ds)) ? ds : (selectedDate || fmtISO(new Date()));
+  const [, m, d] = base.split('-').map(Number);
+  $('evMonth').value = m; $('evDay').value = d;
+  $('evFormTitle').textContent = '新しく追加する';
+  $('evSaveBtn').textContent = '追加する';
+  $('evCancelBtn').classList.add('hidden');
+}
+function renderEventList() {
+  const list = [...getEvents()].sort((a, b) => a.month - b.month || a.day - b.day);
+  $('eventList').innerHTML = list.length ? list.map(ev => {
+    const [emo, tn] = EV_TYPES[ev.type] || EV_TYPES.other;
+    return `<div class="ev-item" style="margin-top:0;margin-bottom:6px">
+      <span style="min-width:0;word-break:break-word">${emo} <b>${esc(ev.name)}</b><span class="help" style="display:block">${ev.month}月${ev.day}日 ・ ${tn}${ev.year ? ` ・ ${ev.year}年` : ''}</span></span>
+      <span class="row" style="flex-shrink:0">
+        <button type="button" class="small-btn" onclick="editEvent('${esc(ev.id)}')" aria-label="編集">✏️</button>
+        <button type="button" class="small-btn" onclick="deleteEvent('${esc(ev.id)}')" aria-label="削除">🗑️</button>
+      </span></div>`;
+  }).join('') : '<p class="help" style="text-align:center;padding:8px 0">まだ登録がありません</p>';
+  const badge = $('evCountBadge'); if (badge) badge.textContent = `${list.length}件`;
+}
+function openEvents(ds) {
+  buildEventForm(); resetEventForm(ds); renderEventList();
+  $('eventModal').classList.remove('hidden');
+}
+function closeEvents() { $('eventModal').classList.add('hidden'); }
+function editEvent(id) {
+  const ev = getEvents().find(x => x.id === id); if (!ev) return;
+  evEditingId = id;
+  $('evName').value = ev.name;
+  const r = document.querySelector(`input[name="evType"][value="${ev.type}"]`); if (r) r.checked = true;
+  $('evMonth').value = ev.month; $('evDay').value = ev.day;
+  $('evYear').value = ev.year || '';
+  $('evFormTitle').textContent = '編集する';
+  $('evSaveBtn').textContent = '変更を保存';
+  $('evCancelBtn').classList.remove('hidden');
+  $('evName').focus();
+}
+async function saveEvent() {
+  const name = $('evName').value.trim();
+  const typeEl = document.querySelector('input[name="evType"]:checked');
+  const type = typeEl ? typeEl.value : 'birthday';
+  const month = Number($('evMonth').value), day = Number($('evDay').value);
+  const yRaw = $('evYear').value.trim();
+  if (!name) { showToast('名前を入力してください'); return; }
+  const dim = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
+  if (day > dim) { showToast(`${month}月は${dim}日までです`); return; }
+  let year = 0;
+  if (yRaw) {
+    year = Number(yRaw);
+    if (!/^\d{4}$/.test(yRaw) || year < 1900 || year > CAL_MAX) { showToast(`年は1900〜${CAL_MAX}の4桁で入力してください`); return; }
+  }
+  const rec = { id: evEditingId || newId(), name, type, month, day, year };
+  const list = [...getEvents()];
+  const i = list.findIndex(x => x.id === rec.id);
+  if (i >= 0) list[i] = rec; else list.push(rec);
+  try {
+    const next = { ...userSettings, events: list };
+    await Store.savePrefs(next);
+    userSettings = next;
+    const wasEdit = !!evEditingId;
+    resetEventForm(); renderEventList(); renderCalendar(); renderSelected();
+    showToast(wasEdit ? '変更を保存しました' : `${name}を登録しました`);
+    requestPersist();
+  } catch (err) { console.error(err); showToast('保存できませんでした'); }
+}
+async function deleteEvent(id) {
+  const ev = getEvents().find(x => x.id === id); if (!ev) return;
+  if (!confirm(`「${ev.name}」を削除しますか？`)) return;
+  try {
+    const next = { ...userSettings, events: getEvents().filter(x => x.id !== id) };
+    await Store.savePrefs(next);
+    userSettings = next;
+    if (evEditingId === id) resetEventForm();
+    renderEventList(); renderCalendar(); renderSelected(); showToast('削除しました');
+  } catch (err) { console.error(err); showToast('削除できませんでした'); }
 }
 
 // =====================================================
